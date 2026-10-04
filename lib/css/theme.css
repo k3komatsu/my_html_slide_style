@@ -29,7 +29,14 @@
   /* --- Slide geometry (px = 固定レイアウトの座標) --- */
   --slide-w: 960px;
   --slide-h: 540px;
+  --slide-width: var(--slide-w);
+  --slide-height: var(--slide-h);
   --margin-x: 73px;         /* 本文左端 */
+  --safe-left: var(--margin-x);
+  --safe-right: 73px;
+  --safe-top: 65px;
+  --safe-bottom: 50px;
+  --layout-gap: 24px;
 
   /* --- Font sizes --- */
   --fs-cover:   40px;

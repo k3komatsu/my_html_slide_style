@@ -6,7 +6,7 @@
 
 ## 1. まず動かす
 
-発表ごとに、このリポジトリをcloneし、編集用のブランチを切ります。
+発表ごとに本リポジトリをcloneし、編集用ブランチを作成します。
 
 ```sh
 git clone git@github.com:k3komatsu/my_html_slide_style.git my-slides
@@ -16,20 +16,38 @@ sh build.sh
 open index.html
 ```
 
-`main`はテンプレート本体のブランチなので、発表の編集は必ずclone直後に切ったブランチで行います。ブランチ名の付け方や、共通の改善を後からテンプレート本体へ還元する運用は「15. Gitでの運用」にまとめています。Gitを使わない場合は、このディレクトリを`my-slides`などに丸ごとコピーしても同じように動きます。
+`main`はテンプレート本体のブランチであるため、スライドの編集は必ずclone直後に切ったブランチ上で行ってください。ブランチの命名規則や、共通の改善内容を後からテンプレート本体へ反映する手順は「15. Gitでの運用」に記載しています。Gitを使用しない場合は、本ディレクトリを`my-slides`等へディレクトリごとコピーしても同様に動作します。
 
-`open`はmacOSのコマンドです。他のOS環境では、ブラウザで直接`index.html`を開いてください。検証用ブラウザにはChromeを推奨します。サンプルスライドは全9枚で構成され、表紙と章扉を除いた7枚にページ番号が表示されます。
+`open`はmacOSのコマンドです。他のOS環境では、ブラウザで直接`index.html`を開いてください。動作確認用ブラウザにはChromeを推奨します。サンプルスライドは全9枚で構成され、表紙と章扉を除いた7枚にページ番号が表示されます。
 
-表示するだけならWebサーバーもNode.jsも不要です。CSS・JavaScript・数式描画を同梱しているので、サンプルは`file://`でもインターネット接続なしで動きます。外部パッケージのインストールや`npm install`は不要です。
+表示するだけであればWebサーバーやNode.jsは不要です。CSS・JavaScript・数式描画ライブラリを内包しているため、サンプルは`file://`経由かつオフライン環境で動作します。外部パッケージの導入や`npm install`の実行は不要です。
 
-本文を編集したら、毎回`sh build.sh`を実行してブラウザを再読み込みしてください。ビルド前の編集は生成HTMLに反映されません。
+ビルド・検証・開発サーバー・エクスポートにはNode.js 22.4以降を使用します。生成済みHTMLの閲覧にはNode.jsもWebサーバーも不要です。
+
+```sh
+node tools/slide.mjs build
+node tools/slide.mjs serve
+node tools/slide.mjs check
+node tools/slide.mjs test
+node tools/slide.mjs export single
+node tools/slide.mjs export site
+node tools/slide.mjs export pdf
+node tools/slide.mjs clean
+```
+
+`serve`は空きポートでローカルサーバーを起動し、URLを出力します。スライド本文・CSS・JS・図・設定・共通ライブラリの変更を検知して自動ビルドを実行し、ブラウザをリロードします。ビルドエラーはターミナルに出力され、ブラウザには直近で成功したHTMLが表示され続けます。終了するにはCtrl+Cを押下します。自動リロード用のスクリプトはサーバー応答時のみ注入され、配布用HTMLには含まれません。
+
+従来の`sh build.sh`およびオプション（`--single`・`--site`・`--cdn`）も使用可能です。`build.sh`はCLIへのラッパーです。手動ビルド時は、実行後にブラウザを手動でリロードしてください。
 
 ## 2. ファイル構成
 
 ```text
 template/
 ├── README.md
-├── build.sh                  # partsを連結してindex.htmlを生成
+├── slide.config.mjs          # 発表のメタデータ・追加CSS/JS・任意機能
+├── tools/                   # CLI・build・serve・check・Chrome接続
+├── docs/                    # 作成手順・レイアウト部品・AI編集ルール
+├── build.sh                  # CLI buildへの互換入口
 ├── index.html                # 生成済みのサンプル
 ├── parts/
 │   ├── 00_head.html          # HTML冒頭、タイトル、CSS、MathJax設定
@@ -37,7 +55,8 @@ template/
 ├── lib/                     # 発表間で共用するライブラリ
 │   ├── css/theme.css        # 色・フォント・寸法の既定値
 │   ├── css/slide.css        # レイアウト・部品・操作UI・印刷
-│   ├── js/deck.js           # ページ送り・一覧・メニューなど
+│   ├── runtime/             # 責務ごとのソース（通常のJSとして結合）
+│   ├── js/deck.js           # runtimeから生成したページ操作コード
 │   ├── js/popover.js        # 設定値のポップアップ
 │   ├── js/tex-svg.js        # 同梱MathJax
 │   ├── figures/menu.svg     # 右上のメニューアイコン
@@ -48,27 +67,44 @@ template/
 ├── scripts/
 │   ├── export-pdf.mjs       # アニメーションを静止してPDF出力
 │   └── bundle-single.mjs    # すべてを埋め込んだ1ファイルHTMLを出力
-└── tests/browser-smoke.mjs  # サンプル用のブラウザテスト
+└── tests/                   # core・fixtures・integration・サンプル回帰テスト
 ```
 
-スライド本文のソース編集は`parts/*.html`で行います。`index.html`は生成物なので、直接編集しないでください。`build.sh`がファイル名順に連結し、末尾に`</main>`、スクリプトの読み込み、HTMLの終了タグを追加します。
+スライド本文のソース編集は`parts/*.html`で行います。`index.html`はビルド成果物であるため、直接編集しないでください。`tools/slide.mjs build`が各ファイルを辞書順に結合し、末尾に`</main>`、スクリプト読み込みタグ、HTML終了タグを付加します。`lib/js/deck.js`も成果物です。共通機能の改修は`lib/runtime/`配下で行います。ブラウザには従来通り通常のscriptタグで読み込ませるため、ES Modulesのロード機能に依存しません。
 
-複数ファイルに分ける場合は`02_topic.html`、`03_summary.html`のように、先頭に桁数をそろえた番号を付けてください。`parts/`に終了タグやスクリプトの読み込みを重複して書く必要はありません。
+複数ファイルに分ける場合は`02_topic.html`、`03_summary.html`のように、先頭に桁数をそろえた番号を付けてください。`parts/`側のファイルに終了タグやスクリプト読み込みタグを重複して記述する必要はありません。
 
-共通ライブラリの既定値は`css/custom.css`で上書きします。読み込み順は`theme.css` → `slide.css` → `custom.css`です。新しい発表では通常、`lib/`を編集せずに済みます。
+共通ライブラリの既定値は`css/custom.css`で上書きします。CSSの読み込み順序は`theme.css` → `slide.css` → `custom.css`です。通常の新規発表作成において、`lib/`を編集する必要はありません。
 
 ## 3. 新しい発表に置き換える
 
-1. `parts/00_head.html`の`<title>`タグの内容を書き換えます。
-2. `parts/01_slides.html`の表紙の題名・所属・発表者名を変更します。
-3. `css/custom.css`の`--footer-text`を変更します。
-4. サンプルの本文を、自分の発表内容に置き換えます。
-5. 図は`figures/`、独自の処理は`js/`に追加します。
-6. `sh build.sh`を実行し、ブラウザで確認します。
+1. `slide.config.mjs`の`title`・`lang`・`author`・`affiliation`・`footer`を書き換えます。
+2. `parts/01_slides.html`内のスライド本文を発表内容に置き換えます。
+3. 画像ファイルは`figures/`または`assets/`へ配置し、独自スクリプトは`js/`等へ追加します。
+4. 追加するCSSおよびJSは、configの`styles`・`scripts`へ読み込み順に指定します。
+5. `node tools/slide.mjs build`および`node tools/slide.mjs check`を実行して動作を確認します。
 
-棒グラフのデモを使わない場合は、本文の`.sample-demo`を含むスライドと`build.sh`の`js/demo.js`の読み込みを削除できます。ポップアップを使わない場合は`lib/js/popover.js`の読み込みも省略できます。
+本文およびhead内で使用される`{{title}}`・`{{lang}}`・`{{author}}`・`{{affiliation}}`は、ビルド時にconfigの設定値へ置換されます。値はHTMLエスケープ処理されます。スライドの配置情報はconfigには記述しません。
 
-MathJaxは本文の数式だけでなく、右下の分数ページ番号にも使います。通常は`lib/js/tex-svg.js`の読み込みを残してください。
+```js
+export default {
+  title: "発表タイトル",
+  lang: "ja",
+  author: "発表者名",
+  affiliation: "所属",
+  footer: "発表者名　　発表タイトル",
+  mathjax: { mode: "local" },
+  features: { overview: true, menu: true, laser: true, popover: true },
+  styles: ["css/custom.css"],
+  scripts: ["js/demo.js"],
+};
+```
+
+サンプルデモが不要な場合は、該当スライドを削除し、configの`scripts`から`js/demo.js`を除外してください。ポップアップ機能が不要な場合は`features.popover`を`false`に設定します。`overview`・`menu`・`laser`も個別に無効化可能です。
+
+config内のパスはプロジェクトルートからの相対パスで指定します。ローカルのCSS・JSファイルは事前に存在確認が行われます。`mathjax.mode`の指定値は`local`または`cdn`です。configはJavaScriptとして実行されるため、信頼できる設定ファイルのみを使用してください。`serve`はconfig本体を再読み込みしますが、configがimportした補助モジュールはNode.jsのキャッシュに残ります。補助モジュールを変更したときはサーバーを再起動してください。
+
+MathJaxは本文中の数式に加え、右下の分数ページ番号の描画にも利用されます。通常は`lib/js/tex-svg.js`の読み込み設定を維持してください。
 
 ## 4. 表紙・章扉・通常スライド
 
@@ -78,8 +114,8 @@ MathJaxは本文の数式だけでなく、右下の分数ページ番号にも�
 
 ```html
 <section class="slide slide--cover">
-  <h1 class="cover-title" style="top:180px">発表タイトル</h1>
-  <p class="author-line center" style="top:285px">所属　発表者名</p>
+  <h1 class="cover-title" style="top:180px">{{title}}</h1>
+  <p class="author-line center" style="top:285px">{{affiliation}}　{{author}}</p>
 </section>
 ```
 
@@ -128,6 +164,27 @@ MathJaxは本文の数式だけでなく、右下の分数ページ番号にも�
 通常の本文領域は、おおむね左73px・右887px、上65pxから下490pxまでを使います。上の見出し・下のフッタ・右下の番号に重ならないように配置してください。幅を指定しない`.box`は内容に応じた幅になるので、文章には`--w`を付けると改行を調整しやすくなります。
 
 自動で内容を縮めたり、次のスライドへ送ったりする機能はありません。文字数の長い見出し要素も自動では改行されません。はみ出す場合は、文章を分ける、明示的に改行する、文字サイズや位置を調整する、のいずれかで修正します。
+
+### Flow Layout
+
+定型的な文章や図は`.content`内に配置することで、本文セーフエリアに収まるレイアウト枠を利用できます。各要素の絶対座標を記述する必要はありません。
+
+```html
+<section class="slide">
+  <h1 class="slide__title">System Model</h1>
+  <div class="content cols-2">
+    <div class="stack">
+      <p>受信機のモデル</p>
+      <ul><li>非線形チャネル</li><li>自己干渉の除去</li></ul>
+    </div>
+    <figure><img src="figures/system.svg" alt="受信機の構成"></figure>
+  </div>
+</section>
+```
+
+`.stack`は垂直方向の整列、`.row`は水平方向の整列、`.cols-2`・`.cols-3`は等幅カラムレイアウトを構成します。`.columns`・`.grid`では`--columns`により列数を指定可能です。`.center-content`は中央揃えを適用します。間隔は`--layout-gap`で調整します。図の左右配置はDOMツリー上の記述順序に従うため、専用の左右配置クラスは定義されていません。
+
+本文セーフエリアの定義元は`--safe-left`・`--safe-right`・`--safe-top`・`--safe-bottom`です。既定値はそれぞれ73px・73px・65px・50pxです。コンテンツが領域を超過しても自動改ページは行われません。`check`で確認し、文章や図を分けてください。数式や図への注釈などの精密配置には、従来の`.box`・`.fig`を使えます。
 
 ### 箇条書きと強調
 
@@ -221,7 +278,6 @@ MathJaxの設定は`parts/00_head.html`にあります。数式描画はSVG出�
 
 ```css
 :root {
-  --footer-text: "所属・発表者名　　発表タイトル";
   --c-accent: #185ab3;
   --c-alert: #da3c3e;
   --c-footer: #505050;
@@ -230,7 +286,7 @@ MathJaxの設定は`parts/00_head.html`にあります。数式描画はSVG出�
 }
 ```
 
-`--footer-text`は引用符で囲むCSS文字列です。空文字列`""`にするとフッタの文字だけを消せます。バーとページ番号は残ります。
+フッタの文字は`slide.config.mjs`の`footer`で設定します。空文字列`""`にすると文字だけを消せます。バーとページ番号は残ります。生成されたCSS変数`--footer-text`は直接編集しません。
 
 `--slide-logo`は右上の49 × 45pxの領域に表示します。初期値は汎用のメニューアイコンです。画像を変更しても、その領域をクリックすると表示メニューが開きます。画像を消すときは`--slide-logo: none`と書けますが、押しボタンが見えなくなるためMキーで開いてください。
 
@@ -246,7 +302,7 @@ CSS内の画像パスは、その記述を書いたCSSファイルからの相�
 
 標準フォントはmacOSのヒラギノ、等幅はConsolas、なければMenloです。フォントファイルは同梱していません。WindowsやLinuxでは別の書体で代用されるため、改行や図の中の文字、枠の横幅を確かめてください。
 
-寸法の変数`--slide-w`・`--slide-h`もありますが、ページ操作・タイトル罫線・印刷寸法などには960 × 540pxの値を使っています。縦横の比率を変える場合は変数の変更だけで済ませず、CSS、`deck.js`、印刷設定、本文の配置位置をまとめて直す必要があります。
+スライド寸法は`theme.css`の`--slide-w`・`--slide-h`が正本です。`--slide-width`・`--slide-height`はその別名で、表示の拡大縮小、一覧、印刷、PDFは同じ値を参照します。本テンプレートのデザインは960 × 540pxを前提とします。別の縦横比を使う場合は、装飾や本文の座標も含めて確認が必要です。
 
 ## 9. 操作方法
 
@@ -308,7 +364,7 @@ EnterやSpaceでも設定画面を開けます。Escまたはポップアップ�
 
 ## 11. 独自のJavaScript・デモを追加する
 
-独自処理を`js/`に置き、`build.sh`の末尾のスクリプト一覧に追加します。入力イベントを登録する処理は`popover.js`より前に読み込みます。数式描画を必要とする処理は`tex-svg.js`の後に読み込み、`MathJax.startup.promise`を待つ形で書きます。
+独自処理を`js/`などに置き、configの`scripts`へ追加します。読み込み順は`deck.js` → configのJS → `popover.js`（有効な場合）→ MathJaxです。入力イベントはpopover初期化前に登録できます。数式描画後の処理は`load`イベント内で`MathJax.startup.promise`を待ちます。
 
 `deck.js`はグローバル変数への干渉を避けるため、内部を関数で囲んでいます。公開APIは次のとおりです。
 
@@ -316,8 +372,18 @@ EnterやSpaceでも設定画面を開けます。Escまたはポップアップ�
 | --- | --- |
 | `SlideDeck.show(i)` | 0始まりの整数で表示するスライドを指定。範囲外は先頭・末尾に収める |
 | `SlideDeck.toggleOverview()` | 一覧を切り替える |
+| `SlideDeck.on(name, listener)` | イベント購読。戻り値の関数で購読を解除 |
+| `SlideDeck.geometry` | CSSから取得した`width`・`height` |
 | `SlideDeck.current` | 現在の0始まりのスライド番号 |
 | `SlideDeck.slides` | スライド要素の配列。取得ごとに配列をコピーする |
+
+`slidechange`は`{ index, slide, previous }`、`overviewchange`と`fullscreenchange`は`{ enabled }`を渡します。`beforeprint`は印刷前に通知します。同じページを再指定した場合は`slidechange`を通知しません。購読前の初期表示は通知されないので、初期化には`SlideDeck.current`を参照します。
+
+```js
+const unsubscribe = SlideDeck.on("slidechange", ({ index, slide }) => {
+  // 表示中のデモを更新する
+});
+```
 
 スライドは初期化時に読み取ります。追加・削除はHTMLで行い、再ビルドしてページを再読み込みしてください。
 
@@ -333,13 +399,13 @@ Canvasやアニメーションを含む発表には、専用のPDF出力スク�
 
 ```sh
 sh build.sh
-node scripts/export-pdf.mjs index.html dist/presentation.pdf
+node tools/slide.mjs export pdf dist/presentation.pdf
 ```
 
 Chromeが標準のmacOSの場所にない場合は、実行ファイルを指定します。
 
 ```sh
-CHROME_PATH='/path/to/chrome' node scripts/export-pdf.mjs index.html dist/presentation.pdf
+CHROME_PATH='/path/to/chrome' node tools/slide.mjs export pdf dist/presentation.pdf
 ```
 
 出力先の`dist/`はGitの管理対象外です。生成PDFは`dist/`にまとめておくと、本文の元データと混ざりません。
@@ -350,44 +416,56 @@ CHROME_PATH='/path/to/chrome' node scripts/export-pdf.mjs index.html dist/presen
 
 PDFは静止画です。動画・CSSアニメーション・タイマー・非同期通信を使う新しいデモを追加した場合は、スクリプト側でも静止状態の指定を追加してください。Canvas検査は2D描画の不透明画素と色つき画素の存在を確認するため、WebGLや白黒・濃淡だけの図には検査の調整が必要です。
 
-一時プロファイルと`validation.json`は`~/.cache/b3exp_wireless_slide/pdf-chrome-*/`に保存します。標準出力にスライド数・数式数・検査結果と保存先を表示します。PDFのページ数がスライド数に一致することと、図・数式・改行・空白ページの有無を目視で確認してください。
+一時プロファイルと`validation.json`は`~/.cache/html-slide/pdf-chrome-*/`に保存します。標準出力にスライド数・数式数・検査結果と保存先を表示します。PDFのページ数がスライド数に一致することと、図・数式・改行・空白ページの有無を目視で確認してください。
 
 ## 13. 確認用のコマンド
 
-cloneまたはコピーしたテンプレートのルートで実行します。
+cloneまたはコピーしたテンプレートのルートディレクトリで実行します。
 
 ```sh
-sh build.sh
-node tests/browser-smoke.mjs
+node tools/slide.mjs test
+node tools/slide.mjs check
 ```
 
-Chromeの場所を変更する場合はPDF出力と同様に`CHROME_PATH`を指定します。対象のHTMLを差し替える場合は、`node tests/browser-smoke.mjs dist/slide.html`のようにパスを指定します。`--cdn`でビルドしたHTMLは外部通信を前提とするため、この検査は既定のビルドで行います。外部のHTTP通信をブロックした状態でサンプルを開き、数式・ページ番号・フッタ・画面サイズごとの配置・ポップアップの値同期・ページ送り停止・メニュー・一覧・全画面・印刷を検査します。
+Chromeのバイナリパスを変更する場合は、PDFエクスポートと同様に環境変数`CHROME_PATH`を指定します。検証対象のHTMLファイルを切り替える場合は、`node tests/browser-smoke.mjs dist/slide.html`のように引数でパスを渡します。`--cdn`指定でビルドしたHTMLは外部ネットワーク通信に依存するため、本検証は既定のローカルビルド成果物に対して実行してください。外部のHTTP通信をブロックした状態でサンプルを開き、数式・ページ番号・フッタ・画面サイズごとの配置・ポップアップの値同期・ページ送り停止・メニュー・一覧・全画面・印刷を検査します。
 
-検証画像は`~/.cache/b3exp_wireless_slide/template-smoke-*/`に保存します。テストはサンプルの8枚・番号付き6枚と部品名を前提にしているため、自分の発表に置き換えた後は必要に応じて期待値や対象を更新してください。全ページの文字の重なりまで保証するものではありません。
+`test`はコア機能、正常系・異常系fixture、ビルドパイプライン、開発サーバー、およびサンプルのリグレッションテストを一括実行します。検証時に取得されたスナップショット画像は`~/.cache/html-slide/sample-*/`へ保存されます。`tests/browser-smoke.mjs`はサンプルのスライド構成（全9枚・番号付き7枚）および特定UIコンポーネントの存在を前提としたテストコードです。
+
+実際の発表資料には`check`を使います。枚数やサンプルの部品名に依存せず、JavaScript例外、MathJaxエラー、画像・ローカルアセットの読み込み失敗、外部通信、重複ID、不正なページ内リンク、alt属性欠落、はみ出し、フッタ・ページ番号への重なり、標準popoverのはみ出しを検査します。
+
+```sh
+node tools/slide.mjs check
+node tools/slide.mjs check dist/slide.html
+node tools/slide.mjs check dist/site/index.html
+```
+
+エラーを検出した場合の終了コードは1となります。配置警告やalt属性欠落警告のみの場合は終了コード0で復帰します。必要に応じて警告内容を精査してください。本検証はDOM描画後のバウンディングボックスおよびリソース取得結果に基づく幾何学的検査です。文字同士のすべての重なり、任意の独自操作、異なるOSのフォント差までは保証しないため、発表前に目視でも確認してください。オフライン検査処理では外部HTTP通信を遮断します。CDN利用等を意図したスライドを検証する場合にのみ、`--allow-external`フラグを付与してください。
 
 ## 14. 配布・保守
 
 Webで表示するために必要なのは`index.html`と`lib/`・`css/`・`js/`・`figures/`です。HTMLだけを渡すと、CSS・数式・図・操作が欠けます。編集できる状態で渡す場合は、このディレクトリ全体を渡してください。
 
-HTMLサーバーで公開する場合は、ビルドに`--site`を付けます。表示に必要なファイル一式が`dist/`にコピーされるので、`dist/`をそのまま公開ディレクトリに置けます。古いファイルは残らず、毎回置き換わります。
+Webサーバーで公開する場合は、`export site`を使います。表示に必要なファイル一式が`dist/site/`にコピーされるので、このディレクトリを公開します。`dist/site/`は毎回置き換わります。
 
 ```sh
-sh build.sh --site
+node tools/slide.mjs export site
 ```
+
+従来の`sh build.sh --site`は互換性のため、引き続き`dist/`直下へ出力します。他の単一HTMLやPDFは残るため、公開用には`export site`を使ってください。`clean`は`dist/`全体を削除し、ソースとルートの生成HTMLは残します。
 
 `--cdn`と組み合わせると、同梱MathJax（約2MB）を除いた一式になります。
 
-1ファイルにまとめて配布する場合は、ビルドに`--single`を付けます。CSS・JavaScript・数式描画・図をすべて埋め込んだ`dist/slide.html`ができ、ファイル1つで開けます。
+1ファイルにまとめて配布する場合は、`export single`を使います。CSS・JavaScript・数式描画・図をすべて埋め込んだ`dist/slide.html`ができ、ファイル1つで開けます。
 
 ```sh
-sh build.sh --single
+node tools/slide.mjs export single
 ```
 
-`dist/`はGitの管理対象外です。出力先を変える場合は`node scripts/bundle-single.mjs index.html my-slides.html`のように指定します。MathJaxを含むため数MBになります。`sh build.sh --single --cdn`にすると、MathJaxをCDNから読み込む小さな1ファイルになります（表示にインターネット接続が必要です）。元のファイルを更新したら作り直してください。
+`dist/`はGitの管理対象外です。出力先を変える場合は`node scripts/bundle-single.mjs index.html my-slides.html`のように指定します。MathJaxを含むため数MBになります。`sh build.sh --single --cdn`にすると、MathJaxをCDNから読み込む小さな1ファイルになります（表示にインターネット接続が必要です）。元のファイルを更新したら作り直してください。単一HTML化は通常のローカルCSS・JS・画像・CSSの`url()`を埋め込みます。`@import`・`srcset`・外部フォントなどは対象外です。出力後にも`check`で確認してください。
 
 公開先や認証設定は含めていません。元の授業スライドの公開サーバー・Basic認証・実験固有のシミュレーションや履歴保存も含めていません。
 
-テンプレートのライブラリは元リポジトリのコードを独立したファイルとして抽出したものです。元のCSS・JSを更新しても自動で同期されません。共通機能を更新する場合は両方の変更内容を確認し、サンプルのブラウザテストを再実行してください。
+テンプレートのライブラリは元リポジトリのコードを独立したファイルとして抽出したものです。元のCSS・JSを更新しても自動で同期されません。共通機能の改善はテンプレートの`main`で行い、core・fixture・サンプルのテストを再実行してください。過去の発表branchは更新しません。
 
 `lib/js/tex-svg.js`は元リポジトリに同梱されていたMathJax 3.2.2をそのままコピーしています。[MathJaxの公式ライセンス](https://github.com/mathjax/MathJax/blob/3.2.2/LICENSE)の写しを`lib/MathJax-LICENSE.txt`に同梱しています。ライブラリをコピー・配布する際も一緒に保持してください。
 
@@ -395,7 +473,7 @@ sh build.sh --single
 
 ## 15. Gitでの運用（発表ごとのcloneとテンプレートへの還元）
 
-発表ごとにこのリポジトリをcloneし、`talk/日付-名前`のようなブランチを切って編集します。発表を通して見つかった共通の改善は、後からテンプレート本体の`main`へ還元します。そのために、還元したい変更と発表固有の変更を最初から分けてコミットしておきます。テンプレートのリポジトリには`main`（テンプレート本体）と`talk/...`（各発表）のブランチが同居し、`main`に入るのは還元済みの変更だけです。
+本リポジトリは継続的に改善されるスライドテンプレートです。発表ごとにこのリポジトリをcloneし、その時点の`main`から`talk/日付-名前`のようなブランチを切って編集します。発表を通して見つかった共通の改善は、後からテンプレート本体の`main`へ還元します。円滑な運用のために、テンプレート本体へ還元すべきコミットと発表固有のコンテンツコミットは、作業初期から厳密に分離して記録してください。テンプレートのリポジトリには`main`（テンプレート本体）と`talk/...`（各発表）のブランチが同居し、`main`に入るのは還元済みの変更だけです。
 
 ### 発表を始める
 
@@ -407,17 +485,17 @@ git switch -c talk/2026-04-my-talk
 
 ### コミットを分ける
 
-還元の対象は共有部分への変更です。`lib/`、`scripts/`、`build.sh`、`tests/`、`README.md`への変更は1機能1コミットにし、`deck:`（操作・描画）、`style:`（見た目）、`fix:`（不具合）などのprefixを付けます。発表固有のファイル（`index.html`、`parts/`、`css/custom.css`、`js/`、`figures/`）は通常のメッセージで構いません。
+本体への還元対象となるのは共有モジュールへの変更のみです。`lib/`、`tools/`、各種エクスポートスクリプト、`build.sh`、`tests/`、ドキュメント類に対する改修は1機能1コミットを徹底し、コミットメッセージに`deck:`（ナビゲーション・描画系）、`style:`（デザイン・レイアウト）、`fix:`（バグ修正）等のプレフィックスを付与します。スライド固有の設定・本文テキスト・カスタムCSS/JS・画像ファイル等のコミットには任意のメッセージを使用して差し支えありません。
 
 ```sh
-git add lib/js/deck.js
+git add lib/runtime/ lib/js/deck.js
 git commit -m "deck: Oキーで一覧を開けるようにする"
 
 git add parts/01_slides.html css/custom.css
 git commit -m "talk: スライド本体を書く"
 ```
 
-区切りごとにブランチをpushしておくと、バックアップと還元の両方に使えます。`main`へはpushしません。
+作業の区切りごとにトピックブランチをリモートへpushしておくことで、作業データのバックアップおよび後続のパッチ還元の両用途に活用できます。`main`ブランチへ直接pushしてはいけません。
 
 ```sh
 git push -u origin talk/2026-04-my-talk
@@ -425,7 +503,7 @@ git push -u origin talk/2026-04-my-talk
 
 ### 還元する
 
-テンプレート本体のcloneで発表のブランチを取り込み、還元するコミットだけをcherry-pickします。prefixを目印に選んでください。発表のブランチをpushしていない場合は、`git remote add my-talk ~/work/my-talk`のようにclone先を直接remoteに指定しても同じです。
+テンプレート本体のリポジトリ側で発表ブランチの変更を取得し、本体へ還元すべきコミットのみを選択的にcherry-pickします。コミットメッセージのプレフィックスを目印に対象を抽出してください。発表ブランチをリモートへpushしていないローカル環境下であっても、`git remote add my-talk ~/work/my-talk`のようにローカルの作業リポジトリを直接リモート登録することで同様にコミットを取り込めます。
 
 ```sh
 # テンプレート本体のcloneで
@@ -437,14 +515,18 @@ node tests/browser-smoke.mjs
 git push origin main
 ```
 
-還元後は`git push origin --delete talk/2026-04-my-talk`で発表のブランチを消しても構いません。発表の作成中にテンプレートの更新を取り込む場合は、`git fetch origin`の後に`git merge origin/main`（または`git rebase origin/main`）を使います。還元は発表当日でなくてよく、次の発表を作り始める前に忘れないうちに済ませておくと、改善が引き継がれます。
+還元後も、発表branchはsnapshotとして保存します。共通機能の改善を還元しただけで発表branchを削除しません。発表branchは本文・共通コード・ツール・同梱依存を含む完全なsnapshotです。発表終了後のブランチは原則としてfreeze（凍結）し、後から更新されたテンプレート本体の`main`を過去の発表ブランチへマージしてはいけません。共通機能の還元は発表当日に行う必要はなく、次回の発表スライド作成を開始する前に適宜完了させておくことで、共通の改善資産が確実に次世代へ引き継がれます。
 
 ### 発表を独立したリポジトリとして公開する
 
-発表だけを配布する場合は、空のリポジトリへブランチを`main`としてpushできます。テンプレートの履歴ごと移ります。
+発表だけを配布する場合は、空のリポジトリへブランチを`main`としてpushできます。テンプレートの全履歴を含んだ状態で移行されます。
 
 ```sh
 git push git@github.com:k3komatsu/my-talk.git talk/2026-04-my-talk:main
 ```
 
-以後テンプレートの更新を追う場合は、clone時に`origin`を発表用リポジトリ、テンプレートを`upstream`に分けると管理しやすくなります。
+公開した発表リポジトリもsnapshotとして保存します。次の発表は、更新済みテンプレートの`main`から新しいbranchを作って始めます。
+
+coreの出自はGit履歴だけで追跡します。個別のVERSIONファイル、coreVersionフィールド、lock file、自動アップデート機構、移行マイグレーションスクリプト等の追加管理体系は一切導入しません。派生元の共通祖先は`git merge-base main talk/my-talk`で確認でき、当時のファイルは`git show <commit>:lib/js/deck.js`で復元できます。生成HTMLと同梱依存を保存することで、過去の資料をその時点のコードで保持します。ただし、これは将来におけるクライアントブラウザの仕様変更やOS内蔵フォントの描画差異までを不変に固定するものではありません。
+
+詳細なスライド記述仕様は[AUTHORING](docs/AUTHORING.md)、利用可能なコンポーネント仕様は[COMPONENTS](docs/COMPONENTS.md)、AIコーディング時の境界条件は[AI_GUIDE](docs/AI_GUIDE.md)を参照してください。presenter viewや複数テーマは、実際に必要になった時点で検討します。

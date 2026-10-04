@@ -11,7 +11,7 @@ body { font-family: var(--font-sans); color: var(--c-text); overflow: hidden; }
 .slide {
   isolation: isolate; /* 印刷でもフッタと番号の負のz-indexを背景より手前に保つ。 */
   position: absolute; left: 50%; top: calc((100% - var(--deck-bottom, 0px)) / 2);
-  width: var(--slide-w); height: var(--slide-h);
+  width: var(--slide-width); height: var(--slide-height);
   transform: translate(-50%, -50%) scale(var(--k, 1));
   overflow: hidden; display: none;
   font-size: var(--fs-1); line-height: var(--lh);
@@ -22,11 +22,14 @@ body { font-family: var(--font-sans); color: var(--c-text); overflow: hidden; }
     var(--c-bg);
 }
 .slide.is-current { display: block; }
+html.without-menu .slide { background-image: none, linear-gradient(var(--c-accent), var(--c-accent)), linear-gradient(var(--c-accent), var(--c-accent)); }
+html.without-menu .slide--cover, html.without-menu .slide--section { background-image: linear-gradient(var(--c-accent), var(--c-accent)); }
 .key-bindings { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap;
   justify-content: center; gap: 6px 18px; padding: 10px 16px; color: #ddd; font-size: 12px; line-height: 1.5; }
 .key-bindings span { white-space: nowrap; }
 .key-bindings kbd { font-family: inherit; color: #fff; }
 .key-bindings[hidden] { display: none; }
+.key-bindings span[hidden] { display: none; }
 .slide:focus { outline: none; }
 .focus-notice { position: fixed; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
   padding: 2px 6px; border: 1px solid #8884; border-radius: 4px; background: #ffffffcf;
@@ -64,7 +67,7 @@ body { font-family: var(--font-sans); color: var(--c-text); overflow: hidden; }
 .slide__logos { position: absolute; right: 24px; top: 18px; display: flex; align-items: center; gap: 16px; height: 70px; }
 .slide__logos img { max-width: 300px; max-height: 70px; }
 .cover-title, .section-title {
-  position: absolute; left: 0; width: 960px; text-align: center;
+  position: absolute; left: 0; width: var(--slide-width); text-align: center;
   color: var(--c-accent); font-weight: normal;
 }
 .cover-title   { top: 0; font-size: var(--fs-cover); letter-spacing: .012em; }
@@ -115,7 +118,7 @@ math { font-family: var(--font-math); font-size: 1.07em; }
 .note-box { position: absolute; border: 2px solid var(--c-alert); border-radius: 12px; }
 
 /* ---------- Print: 1 slide = 1 page ---------- */
-@page { size: 960px 540px; margin: 0; }
+@page { size: var(--slide-width) var(--slide-height); margin: 0; }
 @media print {
   html, body { height: auto; overflow: visible; background: #fff; }
   .slide { display: block; position: relative; left: 0; top: 0; transform: none; break-after: page; }
@@ -150,14 +153,14 @@ html.overview .slide.is-current { outline: 3px solid var(--c-accent); }
   display: flex; align-items: center; justify-content: center; text-align: center;
   font-size: var(--fs-1); line-height: 1.35; }
 
-.center { left: 0; width: 960px; text-align: center; }
+.center { left: 0; width: var(--slide-width); text-align: center; }
 .b-blue::before { color: var(--c-accent); } .b-red::before { color: var(--c-alert); }
 .callout__math { position: absolute; left: 0; right: 0; top: 71px; text-align: center; font-size: 28px; }
 .note-box { border-width: 3px; }
 
 .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; line-height: 1.05; font-size: .8em; margin: 0 .1em; }
 .frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 .1em; }
-.overlay { position: absolute; left: 0; top: 0; width: 960px; height: 540px; pointer-events: none; }
+.overlay { position: absolute; left: 0; top: 0; width: var(--slide-width); height: var(--slide-height); pointer-events: none; }
 .caption { font-size: var(--fs-1); }
 .credit { font-size: var(--fs-footer); }
 code { font-family: var(--font-mono); }
@@ -239,6 +242,19 @@ html:not(.overview) body.is-laser .slide, html:not(.overview) body.is-laser .sli
 .pre { font-family: var(--font-mono); white-space: pre; }
 .small { font-size: var(--fs-3); }
 .vertical { writing-mode: vertical-rl; }
+
+/* Flow layout within the same safe area as absolute-positioned content. */
+.content { position: absolute; left: var(--safe-left); right: var(--safe-right);
+  top: var(--safe-top); bottom: var(--safe-bottom); display: flex; flex-direction: column; gap: var(--layout-gap); }
+.stack { display: flex; flex-direction: column; gap: var(--layout-gap); }
+.row { display: flex; gap: var(--layout-gap); align-items: start; }
+.columns, .cols-2, .cols-3, .grid { display: grid; gap: var(--layout-gap); align-content: start;
+  grid-template-columns: repeat(var(--columns, 2), minmax(0, 1fr)); }
+.cols-3 { --columns: 3; }
+.content > *, .row > *, .columns > *, .grid > * { min-width: 0; }
+.row > * { flex: 1; }
+.content img { display: block; max-width: 100%; height: auto; object-fit: contain; }
+.center-content { display: grid; place-content: center; text-align: center; }
 
 /* 一覧を開いた状態でも、印刷時は1枚ずつ等倍で並べる。 */
 @media print {

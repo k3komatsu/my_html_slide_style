@@ -8,7 +8,7 @@ import path from 'node:path';
 const [source, output] = process.argv.slice(2);
 assert(source && output, 'Usage: node scripts/export-pdf.mjs index.html output.pdf');
 await access(source);
-const cache = path.join(homedir(), '.cache', 'b3exp_wireless_slide');
+const cache = path.join(homedir(), '.cache', 'html-slide');
 await mkdir(cache, { recursive: true });
 const profile = await mkdtemp(path.join(cache, 'pdf-chrome-'));
 const chrome = spawn(process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
@@ -51,7 +51,6 @@ try {
   };
   await cdp('Page.enable');
   await cdp('Runtime.enable');
-  await cdp('Emulation.setDeviceMetricsOverride', { width: 960, height: 540, deviceScaleFactor: 2, mobile: false });
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: `
     window.pdfFrames = new Map(); let frameID = 0;
     window.requestAnimationFrame = fn => { pdfFrames.set(++frameID, fn); return frameID; };
@@ -64,6 +63,12 @@ try {
     if (await evaluate(`document.readyState === 'complete' && !!window.MathJax?.startup?.promise`)) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  const geometry = await evaluate(`window.SlideDeck?.geometry ?? {
+    width: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-width')),
+    height: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slide-height'))
+  }`);
+  assert(geometry.width > 0 && geometry.height > 0, 'Invalid slide geometry');
+  await cdp('Emulation.setDeviceMetricsOverride', { width: Math.ceil(geometry.width), height: Math.ceil(geometry.height), deviceScaleFactor: 2, mobile: false });
   await evaluate(`(async () => {
     await MathJax.startup.promise;
     await document.fonts.ready;
@@ -84,7 +89,7 @@ try {
   const report = await evaluate(`({
     slides: document.querySelectorAll('.slide').length,
     math: document.querySelectorAll('mjx-container').length,
-    mathErrors: document.querySelectorAll('mjx-merror, [data-mjx-error]').length,
+    mathErrors: document.querySelectorAll('mjx-merror, [data-mjx-error], [data-mml-node="merror"]').length,
     brokenImages: [...document.images].filter(img => !img.complete || !img.naturalWidth).map(img => img.src),
     plots: [...document.querySelectorAll('canvas')].map(canvas => {
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -101,7 +106,7 @@ try {
   assert.equal(report.mathErrors, 0, 'Math rendering errors');
   assert.equal(report.brokenImages.length, 0, 'Missing images');
   assert(report.plots.every(plot => plot.opaque > 0 && plot.colored > 0), 'An animation plot is blank');
-  const pdf = await cdp('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, displayHeaderFooter: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 });
+  const pdf = await cdp('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, paperWidth: geometry.width / 96, paperHeight: geometry.height / 96, displayHeaderFooter: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 });
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, Buffer.from(pdf.data, 'base64'), { flag: 'wx' });
   await writeFile(path.join(profile, 'validation.json'), JSON.stringify(report, null, 2));

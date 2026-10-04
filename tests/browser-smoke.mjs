@@ -1,63 +1,17 @@
 // Node.js 22.4以降 + Chrome。外部パッケージ不要。
 // 対象は引数で指定できる（既定: index.html）。
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { homedir } from 'node:os';
+import { writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { openBrowser } from '../tools/browser.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const target = path.join(root, process.argv[2] ?? 'index.html');
-const cache = path.join(homedir(), '.cache', 'b3exp_wireless_slide');
-await mkdir(cache, { recursive: true });
-const profile = await mkdtemp(path.join(cache, 'template-smoke-'));
-const chrome = spawn(process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-  '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
-], { stdio: 'ignore' });
-let socket, startupError;
-chrome.on('error', error => { startupError = error; });
-const timeout = setTimeout(() => { console.error('Template test timed out'); chrome.kill(); process.exit(1); }, 60000);
+const target = path.resolve(root, process.argv[2] ?? 'index.html');
+const browser = await openBrowser({ label: 'sample' });
+const { cdp, evaluate, errors, failed, external, profile } = browser;
 try {
-  let port;
-  for (let i = 0; i < 100; i++) {
-    if (startupError) throw startupError;
-    try { port = (await readFile(path.join(profile, 'DevToolsActivePort'), 'utf8')).split('\n')[0]; break; }
-    catch { await new Promise(resolve => setTimeout(resolve, 100)); }
-  }
-  assert(port, 'Chrome did not start');
-  const tabs = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
-  socket = new WebSocket(tabs.find(tab => tab.type === 'page').webSocketDebuggerUrl);
-  await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
-  let id = 0;
-  const pending = new Map(), errors = [], failed = [], external = [];
-  socket.onmessage = event => {
-    const message = JSON.parse(event.data);
-    if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails);
-    if (message.method === 'Network.loadingFailed') failed.push(message.params);
-    if (message.method === 'Network.requestWillBeSent' && /^https?:/.test(message.params.request.url)) external.push(message.params.request.url);
-    if (message.id) {
-      const { resolve, reject } = pending.get(message.id); pending.delete(message.id);
-      message.error ? reject(new Error(JSON.stringify(message.error))) : resolve(message.result);
-    }
-  };
-  const cdp = (method, params = {}) => new Promise((resolve, reject) => {
-    pending.set(++id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params }));
-  });
-  const evaluate = async expression => {
-    const result = await cdp('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-    assert(!result.exceptionDetails, JSON.stringify(result.exceptionDetails)); return result.result.value;
-  };
-  await cdp('Page.enable'); await cdp('Runtime.enable'); await cdp('Network.enable');
-  await cdp('Network.setBlockedURLs', { urls: ['http://*', 'https://*'] });
-  await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
-  await cdp('Page.navigate', { url: pathToFileURL(target).href });
-  for (let i = 0; i < 100; i++) {
-    if (await evaluate(`document.readyState === 'complete' && !!window.MathJax?.startup?.promise`)) break;
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-  await evaluate(`(async () => { await MathJax.startup.promise; await document.fonts.ready; await Promise.all([...document.images].map(img => img.decode())); })()`);
+  await browser.load(target);
   assert.equal(await evaluate(`document.querySelectorAll('.slide').length`), 9);
   assert.equal(await evaluate(`document.querySelectorAll('.slide-page mjx-container [data-mml-node="mfrac"]').length`), 7);
   assert.equal(await evaluate(`document.querySelectorAll('mjx-merror, [data-mjx-error]').length`), 0);
@@ -73,7 +27,8 @@ try {
         const keys = document.querySelector('.key-bindings').getBoundingClientRect();
         if (b.left < -1 || b.top < -1 || b.right > innerWidth + 1 || b.bottom > keys.top + 1) throw Error('Slide or keys overflow');
         for (const el of slide.querySelectorAll('h1, .box, .fig, .callout, .note-box, .sample-demo')) {
-          if (el.offsetLeft < 0 || el.offsetTop < 0 || el.offsetLeft + el.offsetWidth > 960 || el.offsetTop + el.offsetHeight > 518) throw Error('Content overflow: ' + el.outerHTML.slice(0, 150));
+          const footer = parseFloat(getComputedStyle(slide, '::before').height);
+          if (el.offsetLeft < 0 || el.offsetTop < 0 || el.offsetLeft + el.offsetWidth > slide.clientWidth || el.offsetTop + el.offsetHeight > slide.clientHeight - footer + 1) throw Error('Content overflow: ' + el.outerHTML.slice(0, 150));
         }
       }
       SlideDeck.show(7);
@@ -141,5 +96,5 @@ try {
   assert.deepEqual(errors, []); assert.deepEqual(failed, []); assert.deepEqual(external, []);
   console.log(JSON.stringify({ result: 'PASS', slides: 9, numbered: 7, screenshots: profile }, null, 2));
 } finally {
-  clearTimeout(timeout); socket?.close(); chrome.kill();
+  browser.close();
 }

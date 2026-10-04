@@ -1,7 +1,7 @@
 <!-- 表紙・章扉にはページ番号が付かない。 -->
 <section class="slide slide--cover">
-  <h1 class="cover-title" style="top:180px">HTMLスライド テンプレート</h1>
-  <p class="author-line center" style="top:285px">所属　発表者名</p>
+  <h1 class="cover-title" style="top:180px">{{title}}</h1>
+  <p class="author-line center" style="top:285px">{{affiliation}}　{{author}}</p>
   <p class="box center gray fs-3" style="--y:355px">青い見出し・白い背景・960 × 540 の固定レイアウト</p>
 </section>
 
@@ -108,7 +108,7 @@ open index.html</code></pre>
 
 <section class="slide">
   <h1 class="slide__title">このディレクトリをコピーして使う</h1>
-  <ul class="box" style="--y:95px; --w:814px">
+  <ul class="content stack">
     <li>README.mdに作成手順と部品の使い方を記載</li>
     <li class="gap">表紙、章扉、本文を必要な枚数だけ追加</li>
     <li class="gap">矢印でページ送り、Mでメニュー、Oで一覧</li>
