@@ -45,7 +45,9 @@ template/
 ├── css/custom.css           # 発表ごとの設定・追加スタイル
 ├── js/demo.js               # サンプル固有の処理
 ├── figures/process.svg      # サンプル固有の図
-├── scripts/export-pdf.mjs   # アニメーションを静止してPDF出力
+├── scripts/
+│   ├── export-pdf.mjs       # アニメーションを静止してPDF出力
+│   └── bundle-single.mjs    # すべてを埋め込んだ1ファイルHTMLを出力
 └── tests/browser-smoke.mjs  # サンプル用のブラウザテスト
 ```
 
@@ -355,13 +357,21 @@ sh build.sh
 node tests/browser-smoke.mjs
 ```
 
-Chromeの場所を変更する場合はPDF出力と同様に`CHROME_PATH`を指定します。外部のHTTP通信をブロックした状態でサンプルを開き、数式・ページ番号・フッタ・画面サイズごとの配置・ポップアップの値同期・ページ送り停止・メニュー・一覧・全画面・印刷を検査します。
+Chromeの場所を変更する場合はPDF出力と同様に`CHROME_PATH`を指定します。対象のHTMLを差し替える場合は、`node tests/browser-smoke.mjs dist/slide.html`のようにパスを指定します。外部のHTTP通信をブロックした状態でサンプルを開き、数式・ページ番号・フッタ・画面サイズごとの配置・ポップアップの値同期・ページ送り停止・メニュー・一覧・全画面・印刷を検査します。
 
 検証画像は`~/.cache/b3exp_wireless_slide/template-smoke-*/`に保存します。テストはサンプルの8枚・番号付き6枚と部品名を前提にしているため、自分の発表に置き換えた後は必要に応じて期待値や対象を更新してください。全ページの文字の重なりまで保証するものではありません。
 
 ## 14. 配布・保守
 
 Webで表示するために必要なのは`index.html`と`lib/`・`css/`・`js/`・`figures/`です。HTMLだけを渡すと、CSS・数式・図・操作が欠けます。編集できる状態で渡す場合は、このディレクトリ全体を渡してください。
+
+1ファイルにまとめて配布する場合は、ビルドに`--single`を付けます。CSS・JavaScript・数式描画・図をすべて埋め込んだ`dist/slide.html`ができ、ファイル1つで開けます。
+
+```sh
+sh build.sh --single
+```
+
+`dist/`はGitの管理対象外です。出力先を変える場合は`node scripts/bundle-single.mjs index.html my-slides.html`のように指定します。MathJaxを含むため数MBになります。元のファイルを更新したら作り直してください。
 
 公開先や認証設定は含めていません。元の授業スライドの公開サーバー・Basic認証・実験固有のシミュレーションや履歴保存も含めていません。
 

@@ -1,4 +1,5 @@
 // Node.js 22.4以降 + Chrome。外部パッケージ不要。
+// 対象は引数で指定できる（既定: index.html）。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -7,6 +8,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+const target = path.join(root, process.argv[2] ?? 'index.html');
 const cache = path.join(homedir(), '.cache', 'b3exp_wireless_slide');
 await mkdir(cache, { recursive: true });
 const profile = await mkdtemp(path.join(cache, 'template-smoke-'));
@@ -50,7 +52,7 @@ try {
   await cdp('Page.enable'); await cdp('Runtime.enable'); await cdp('Network.enable');
   await cdp('Network.setBlockedURLs', { urls: ['http://*', 'https://*'] });
   await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
-  await cdp('Page.navigate', { url: pathToFileURL(path.join(root, 'index.html')).href });
+  await cdp('Page.navigate', { url: pathToFileURL(target).href });
   for (let i = 0; i < 100; i++) {
     if (await evaluate(`document.readyState === 'complete' && !!window.MathJax?.startup?.promise`)) break;
     await new Promise(resolve => setTimeout(resolve, 100));
