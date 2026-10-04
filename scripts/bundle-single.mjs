@@ -15,26 +15,32 @@ const dataURI = file =>
 
 let html = readFileSync(source, 'utf8');
 
-// スタイルシート: url(...)をdata URIに置き換えてから<style>にする。
+// スタイルシート: url(...)をdata URIに置き換えてから<style>にする。CDNの参照はそのまま残す。
 html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (tag, href) => {
+  if (/^(?:https?:)?\/\//.test(href)) return tag;
   const css = readFileSync(href, 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '') // コメント内のurl(...)は対象外
     .replace(/url\((["']?)([^"')]+)\1\)/g, (match, quote, url) =>
-      /^(?:data:|https?:|#)/.test(url) ? match : `url("${dataURI(path.resolve(path.dirname(href), url))}")`);
+      /^(?:data:|https?:|\/\/|#)/.test(url) ? match : `url("${dataURI(path.resolve(path.dirname(href), url))}")`);
   return `<style>\n${css}\n</style>`;
 });
 
-// スクリプト: </scriptをエスケープしてから<script>にする。
+// スクリプト: </scriptをエスケープしてから<script>にする。CDNの参照はそのまま残す。
 html = html.replace(/<script src="([^"]+)"><\/script>/g, (tag, src) =>
-  `<script>\n${readFileSync(src, 'utf8').replace(/<\/script/gi, '<\\/script')}\n</script>`);
+  /^(?:https?:)?\/\//.test(src) ? tag : `<script>\n${readFileSync(src, 'utf8').replace(/<\/script/gi, '<\\/script')}\n</script>`);
 
 // 画像: HTMLからの相対パスでdata URIにする。
 html = html.replace(/(<img\b[^>]*\bsrc=")([^"]+)(")/g, (tag, head, src, tail) =>
   /^data:/.test(src) ? tag : head + dataURI(path.resolve(path.dirname(source), src)) + tail);
 
 // ponytail: @import・srcset・外部URLのフォントには未対応。必要になったら追加する。
-assert(!/<link rel="stylesheet"|<script src=|<img\b[^>]*\bsrc="(?!data:)/.test(html), '外部参照が残っています');
+assert(!/<link\b[^>]*\bhref="(?!https?:|\/\/)/.test(html)
+  && !/<script src="(?!https?:|\/\/)/.test(html)
+  && !/<img\b[^>]*\bsrc="(?!data:|https?:|\/\/)/.test(html), 'ローカルの外部参照が残っています');
 
 mkdirSync(path.dirname(output), { recursive: true });
 writeFileSync(output, html);
-console.log(`${output} を書き出しました（${(Buffer.byteLength(html) / 1024 / 1024).toFixed(1)}MB、外部参照なし）`);
+const mb = Buffer.byteLength(html) / 1024 / 1024;
+const size = mb >= 1 ? `${mb.toFixed(1)}MB` : `${Math.round(mb * 1024)}KB`;
+const remote = /<script src="https?:|<link\b[^>]*\bhref="https?:/.test(html);
+console.log(`${output} を書き出しました（${size}${remote ? '、MathJaxはCDN参照' : '、外部参照なし'}）`);
