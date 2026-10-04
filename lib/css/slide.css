@@ -1,0 +1,247 @@
+/* ==========================================================
+   slide.css — スライドの骨格（枠・タイトル・箇条書き・部品）
+   デザイン値は theme.css の変数を参照する。
+   ========================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #222; }
+body { font-family: var(--font-sans); color: var(--c-text); overflow: hidden; }
+
+/* ---------- Slide frame ---------- */
+.slide {
+  isolation: isolate; /* 印刷でもフッタと番号の負のz-indexを背景より手前に保つ。 */
+  position: absolute; left: 50%; top: calc((100% - var(--deck-bottom, 0px)) / 2);
+  width: var(--slide-w); height: var(--slide-h);
+  transform: translate(-50%, -50%) scale(var(--k, 1));
+  overflow: hidden; display: none;
+  font-size: var(--fs-1); line-height: var(--lh);
+  background:
+    var(--slide-logo) 901px 9px / 49px 45px no-repeat,          /* 差し替え可能なメニューアイコン */
+    linear-gradient(var(--c-accent), var(--c-accent)) 66px 47px / 828px 1px no-repeat, /* タイトル罫線 */
+    linear-gradient(var(--c-accent), var(--c-accent)) 0 0 / 100% 6.7px no-repeat,      /* 上端バー */
+    var(--c-bg);
+}
+.slide.is-current { display: block; }
+.key-bindings { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 6px 18px; padding: 10px 16px; color: #ddd; font-size: 12px; line-height: 1.5; }
+.key-bindings span { white-space: nowrap; }
+.key-bindings kbd { font-family: inherit; color: #fff; }
+.key-bindings[hidden] { display: none; }
+.slide:focus { outline: none; }
+.focus-notice { position: fixed; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  padding: 2px 6px; border: 1px solid #8884; border-radius: 4px; background: #ffffffcf;
+  color: #606060; font-size: 12px; line-height: 1.4; box-shadow: 0 1px 4px #0001; }
+.focus-notice button { padding: 1px 5px; border: 1px solid #8885; border-radius: 3px; background: transparent;
+  color: inherit; font: inherit; cursor: pointer; }
+.focus-notice[hidden] { display: none; }
+
+/* フッタ：バー＋著者/題名＋ページ番号 */
+.slide::before {
+  content: var(--footer-text, "");
+  position: absolute; left: 0; right: 0; bottom: 0; height: 22.2px; z-index: -2;
+  padding: 5px 72px 0 var(--margin-x); overflow: hidden; background: var(--c-footer);
+  color: #fff; font-size: var(--fs-footer); line-height: 1.2; white-space: pre;
+}
+.slide-page { position: absolute; right: -12px; bottom: -12px; width: 72px; height: 72px; z-index: -1;
+  display: grid; place-items: center; border: 6px solid #555; border-radius: 50%; background: #fff;
+  color: #404040; font-size: 24px; line-height: 1; pointer-events: none; }
+
+/* ---------- Title ---------- */
+.slide__title {
+  position: absolute; left: var(--margin-x); top: 9.6px; margin: 0;
+  font-size: var(--fs-title); font-weight: normal;
+  color: var(--c-accent); white-space: nowrap;
+}
+
+/* ---------- Cover / Section slides (扉) ---------- */
+.slide--cover::before, .slide--section::before { content: ""; }
+.slide--cover, .slide--section {
+  background:
+    linear-gradient(var(--c-accent), var(--c-accent)) 0 0 / 100% 6.7px no-repeat,
+    var(--c-bg);
+}
+.slide--cover::before, .slide--section::before { padding: 0; }
+.slide__logos { position: absolute; right: 24px; top: 18px; display: flex; align-items: center; gap: 16px; height: 70px; }
+.slide__logos img { max-width: 300px; max-height: 70px; }
+.cover-title, .section-title {
+  position: absolute; left: 0; width: 960px; text-align: center;
+  color: var(--c-accent); font-weight: normal;
+}
+.cover-title   { top: 0; font-size: var(--fs-cover); letter-spacing: .012em; }
+.section-title { font-size: var(--fs-section); line-height: 65px; }
+.section-title.sm { font-size: 48px; line-height: 52px; }
+.author-line { position: absolute; font-size: var(--fs-2); }
+
+/* ---------- Free positioning ---------- */
+.box { position: absolute; left: var(--x, var(--margin-x)); top: var(--y, 0); width: var(--w, auto); }
+.fig { position: absolute; left: var(--x, 0); top: var(--y, 0); }
+.fig > * { display: block; }
+
+/* ---------- Bullets ---------- */
+ul { list-style: none; }
+li { position: relative; padding-left: 18px; margin-top: .2em; }   /* 段落間 = 0.2em */
+.box > ul > li:first-child, .box > li:first-child { margin-top: 0; }
+li::before { content: "•"; position: absolute; left: 0; font-family: Arial, sans-serif; }
+li > ul { margin-left: 18px; }
+li > ul > li { font-size: var(--fs-2); }
+li > ul > li > ul > li { font-size: var(--fs-3); }
+li.nobullet { padding-left: 0; }
+li.nobullet::before { content: none; }
+.plain { list-style: none; }
+.plain > li { padding-left: 0; margin-top: .2em; } .plain > li::before { content: none; }
+
+/* ---------- Inline emphasis ---------- */
+.blue  { color: var(--c-accent); }
+.red   { color: var(--c-alert); }
+.dred  { color: var(--c-alert-dk); }
+.gray  { color: var(--c-gray); }
+.u     { text-decoration: underline; }
+b, .bold { font-weight: bold; }
+a { color: var(--c-link); }
+code, .mono { font-family: var(--font-mono); }
+/* 数式：簡単なものは <span class="m"> + <var>/<sub>/<sup>、分数・根号・場合分けは MathML */
+.m { font-family: var(--font-math); font-size: 1.07em; white-space: nowrap; line-height: 0; letter-spacing: .02em; }
+div.m, p.m { line-height: var(--lh); }
+.m var { font-style: italic; }
+.m sub, .m sup { font-size: .7em; line-height: 0; }
+.m sub { vertical-align: -.28em; } .m sup { vertical-align: .5em; }
+math { font-family: var(--font-math); font-size: 1.07em; }
+
+/* ---------- Components ---------- */
+.callout {                          /* 「目的」など青枠見出し付きボックス */
+  position: absolute; border: 3px solid var(--c-accent); border-radius: 12px; overflow: hidden;
+}
+.callout__head { background: var(--c-accent); color: #fff; text-align: center; font-weight: bold; }
+.note-box { position: absolute; border: 2px solid var(--c-alert); border-radius: 12px; }
+
+/* ---------- Print: 1 slide = 1 page ---------- */
+@page { size: 960px 540px; margin: 0; }
+@media print {
+  html, body { height: auto; overflow: visible; background: #fff; }
+  .slide { display: block; position: relative; left: 0; top: 0; transform: none; break-after: page; }
+  .slide:last-child { break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ---------- Overview mode (press "o")：複数カラムのグリッド一覧 ---------- */
+html.overview body { overflow: auto; }
+html.overview .slides { display: grid; grid-template-columns: var(--ovgrid, 672px); justify-content: center;
+  align-items: start; gap: 18px; padding: 18px 44px 18px 18px; }   /* 右はミニマップぶん空ける */
+html.overview .slide { display: block; position: relative; left: auto; top: auto; transform: none;
+  zoom: var(--ovk, .7); margin: 0; outline: 1px solid #888; }
+html.overview .slide.is-current { outline: 3px solid var(--c-accent); }
+
+/* ---------- Spacing helpers ---------- */
+.gap   { margin-top: 1.4em; }
+.sp    { margin-top: .33em; }       /* 段落間をやや広め */      /* 空行1つぶん */
+.gap-2 { margin-top: 2.7em; }      /* 空行2つぶん */
+.col { display: inline-block; }    /* 表組み風の列（幅は style="width:..."） */
+.fs-1 { font-size: var(--fs-1); } .fs-2 { font-size: var(--fs-2); } .fs-3 { font-size: var(--fs-3); }
+
+.callout__head { height: 34.8px; line-height: 30.8px; padding-top: 2px; }
+.callout__body { position: absolute; left: 0; top: 53px; padding-left: 4px; font-size: var(--fs-2); line-height: 29px; }
+.callout u { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+/* 見出しを左に置く横並び版（例：「理由 1」）。見出し幅は --callout-head-w で変更できる。 */
+.callout--row { display: flex; }
+.callout--row > .callout__head { flex: none; width: var(--callout-head-w, 140px); height: auto; padding-top: 0;
+  display: flex; align-items: center; justify-content: center; font-size: var(--fs-2); }
+.callout--row > .callout__body { position: static; flex: 1; min-width: 0; top: auto; padding: 0 16px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: var(--fs-1); line-height: 1.35; }
+
+.center { left: 0; width: 960px; text-align: center; }
+.b-blue::before { color: var(--c-accent); } .b-red::before { color: var(--c-alert); }
+.callout__math { position: absolute; left: 0; right: 0; top: 71px; text-align: center; font-size: 28px; }
+.note-box { border-width: 3px; }
+
+.frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; line-height: 1.05; font-size: .8em; margin: 0 .1em; }
+.frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 .1em; }
+.overlay { position: absolute; left: 0; top: 0; width: 960px; height: 540px; pointer-events: none; }
+.caption { font-size: var(--fs-1); }
+.credit { font-size: var(--fs-footer); }
+code { font-family: var(--font-mono); }
+.overlay .math { font-family: var(--font-math); font-style: italic; }
+.overlay .sub { font-size: 70%; }
+/* 図中の文字ラベル（SVGではなくHTMLテキスト）。--x/--y は文字ボックス左上 */
+.lbl { position: absolute; left: var(--x); top: var(--y); line-height: 1; white-space: nowrap; }
+ul.fs-3 > li, ul.fs-2 > li { font-size: inherit; }   /* .fs-* を付けた ul は、子の li も同じサイズにする */
+
+.tight li { margin-top: 0; }   /* 入れ子リストの段落間隔を詰める */
+
+/* ---------- MathJax ---------- */
+mjx-container { margin: 0 !important; }
+mjx-container[display="true"] { margin: 0 !important; }
+.box mjx-container[display="true"] { text-align: center; }
+/* 図の上に重ねる数式ラベル：.ml = 基線が --y、.mlc = 縦中央が --y */
+.ml, .mlc { position: absolute; left: var(--x); top: var(--y); line-height: 1; white-space: nowrap; }
+.ml  { transform: translateY(-.82em); }
+.mlc { transform: translate(-50%, -50%); }
+.mlrot { transform: rotate(-90deg); transform-origin: 0 100%; }
+mjx-container[jax="SVG"] { font-size: 94%; }
+/* ---------- 全スライド一覧のミニマップ（js/deck.js） ---------- */
+.minimap { display: none; }
+html.overview .minimap { display: flex; flex-direction: column; gap: 1px; position: fixed; top: 50%; right: 16px; width: 16px;
+  transform: translateY(-50%); padding: 4px; border-radius: 8px; background: rgba(30, 30, 30, .72); z-index: 60; }
+.minimap__tick { flex: none; width: 16px; height: 4px; padding: 0; border: 0; border-radius: 1px; background: #8a8a8a; cursor: pointer; }
+.minimap__tick:hover { background: #ffe9a8; }
+.minimap__tick.is-current { background: #58a6ff; }
+.minimap__band { position: absolute; left: -4px; width: 24px; border-radius: 8px; background: rgba(120, 180, 255, .2); pointer-events: none; }
+
+@media print {
+  .minimap, .menu, .logo-btn, .sim-pop, .laser-pointer, .key-bindings, .focus-notice { display: none !important; }
+}
+
+/* ---------- 表示メニュー（js/deck.js）：右上のアイコンクリックで開閉 ---------- */
+.logo-btn { position: absolute; left: 901px; top: 9px; width: 49px; height: 45px; padding: 0; border: 0; background: transparent; cursor: pointer; z-index: 10; }
+.logo-btn:hover { background: rgba(24, 90, 179, .08); border-radius: 8px; }
+.menu { position: absolute; top: 0; right: 0; width: 320px; height: 517.8px; z-index: 11;
+  background: #fff; border-left: 1px solid #ccc; box-shadow: -6px 0 18px rgba(0, 0, 0, .16);
+  font-family: var(--font-sans); font-size: 17px; color: var(--c-text);
+  transform: translateX(103%); transition: transform .25s ease; }
+.slide.is-menu .menu { transform: translateX(0); }
+.menu__head { display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 16px; border-bottom: 1px solid #ddd; color: var(--c-accent); font-size: 19px; }
+.menu__close { padding: 0 6px; border: 0; background: transparent; color: var(--c-gray); font-size: 24px; line-height: 1; cursor: pointer; }
+.menu__item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 13px 16px;
+  border: 0; border-bottom: 1px solid #f0f0f0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.menu__item:hover { background: #eef4fc; color: var(--c-accent); }
+.menu__key { flex: none; padding: 1px 7px; border: 1px solid #ccc; border-radius: 5px; color: var(--c-gray); font-size: 12px; }
+.menu__item--laser[aria-pressed="true"] { color: var(--c-alert); }
+.laser-pointer { position: fixed; width: 14px; height: 14px; border-radius: 50%; pointer-events: none; z-index: 10000;
+  transform: translate(-50%, -50%); background: radial-gradient(circle, #fff 0, #ffb0b0 15%, #f22 45%, #d00 75%);
+  box-shadow: 0 0 8px 3px rgba(255, 0, 0, .45); }
+html:not(.overview) body.is-laser .slide, html:not(.overview) body.is-laser .slide * { cursor: none !important; }
+
+/* ---------- 設定ポップオーバー（js/popover.js）：本文の設定値テキストをクリックで開閉 ---------- */
+.sim-src { cursor: pointer; border-bottom: 1px dashed #b9c6d8; }
+.sim-src:hover, .sim-src.is-open { color: var(--c-accent); border-bottom-color: var(--c-accent); }
+.sim-pop { position: absolute; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  width: 250px; padding: 10px 12px; border: 1px solid #ccd; border-radius: 10px;
+  background: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+  font-family: var(--font-sans); font-size: 15px; color: var(--c-text); }
+.sim-pop__name { flex: 1 0 100%; font-size: 13px; color: var(--c-gray); }
+.sim-pop input[type=range] { flex: 1 1 150px; min-width: 0; }
+.sim-pop select, .sim-pop button { font: inherit; padding: 2px 8px; }
+.sim-pop > b, .sim-pop > output { font-weight: normal; color: var(--c-alert); font-variant-numeric: tabular-nums; }
+
+/* サイドバー等へ移した設定の「値」だけを本文フォントで表示 */
+.slide .sim-ctl { flex-wrap: wrap; font-size: 20px; }
+.sim-ctl b { font-weight: normal; }
+.sim-ctl .sim-val { color: var(--c-alert); }
+
+
+/* 汎用コントロール。入力はpopover.jsがポップアップへ移す。 */
+.sim-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+.sim-controls label { display: inline-flex; align-items: center; gap: 8px; }
+.sim-controls button { font: inherit; padding: 3px 10px; cursor: pointer; }
+.sim-src:focus-visible, .logo-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+
+.pre { font-family: var(--font-mono); white-space: pre; }
+.small { font-size: var(--fs-3); }
+.vertical { writing-mode: vertical-rl; }
+
+/* 一覧を開いた状態でも、印刷時は1枚ずつ等倍で並べる。 */
+@media print {
+  html.overview .slides { display: block; padding: 0; }
+  html.overview .slide { left: 0; top: 0; zoom: 1; margin: 0; outline: none; }
+}

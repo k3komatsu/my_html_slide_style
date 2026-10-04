@@ -1,0 +1,43 @@
+/* ==========================================================
+   theme.css — 色・フォント・サイズなどのデザイントークン
+   見た目を変えたいときは、まずここだけを編集する。
+   ========================================================== */
+/* 等幅フォント：元スライドは Consolas。無い環境では Menlo を 91.4% に縮めて文字幅を揃える */
+@font-face { font-family: "Code"; src: local("Consolas"); }
+@font-face { font-family: "Code Fallback"; src: local("Menlo"), local("Menlo-Regular"); size-adjust: 91.4%; }
+
+:root {
+  /* --- Colors --- */
+  --c-text:     #404040;   /* 本文 */
+  --c-accent:   #185ab3;   /* タイトル・強調（青） */
+  --c-alert:    #da3c3e;   /* 強調（赤） */
+  --c-alert-dk: #c00000;   /* 強調（濃い赤） */
+  --c-gray:     #505050;   /* 補助テキスト・フッタ */
+  --c-link:     #0563c1;
+  --c-bg:       #ffffff;
+  --c-footer:   #505050;
+
+  /* --- Branding --- */
+  --footer-text: "発表者　　発表タイトル";
+  --slide-logo: url("../figures/menu.svg");
+
+  /* --- Font --- */
+  --font-sans: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "ヒラギノ角ゴ ProN W3", sans-serif;
+  --font-mono: "Code", "Code Fallback", monospace;   /* Consolas → 無ければ Menlo を幅補正して使う */
+  --font-math: "Cambria Math", Cambria, "STIX Two Text", "Times New Roman", serif;
+
+  /* --- Slide geometry (px = 固定レイアウトの座標) --- */
+  --slide-w: 960px;
+  --slide-h: 540px;
+  --margin-x: 73px;         /* 本文左端 */
+
+  /* --- Font sizes --- */
+  --fs-cover:   40px;
+  --fs-section: 60px;       /* セクション扉（.sm は 48px） */
+  --fs-title:   32px;
+  --fs-1: 28px;             /* 箇条書き第1階層 */
+  --fs-2: 24px;             /* 第2階層 */
+  --fs-3: 20px;             /* 第3階層 */
+  --fs-footer:  12px;
+  --lh: 1.1;                /* 行間 */
+}

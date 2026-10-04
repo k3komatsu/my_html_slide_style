@@ -1,0 +1,10 @@
+/* 発表ごとの設定はここに書く。lib/の既定値を上書きする。 */
+:root {
+  --footer-text: "発表者名　　HTMLスライド テンプレート";
+  /* --c-accent: #185ab3; */
+  /* --slide-logo: url("../figures/my-logo.svg"); */
+}
+
+/* サンプルデモだけで使用する配置 */
+.sample-demo { position: absolute; left: 73px; top: 90px; width: 814px; }
+.demo-chart { display: block; width: 814px; height: 180px; margin: 12px 0; }
