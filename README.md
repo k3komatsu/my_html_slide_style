@@ -1,19 +1,21 @@
 # HTMLスライド テンプレート
 
-「実験e ディジタル無線通信の基礎」のHTMLスライドから、共通の見た目と操作を取り出したテンプレートです。このディレクトリを丸ごとコピーして、別の授業・研究発表・説明資料を作れます。元のスライドや親ディレクトリのファイルは必要ありません。
+「実験e ディジタル無線通信の基礎」のHTMLスライドから、共通の見た目と操作を取り出したテンプレートです。このリポジトリをcloneまたはコピーして、別の授業・研究発表・説明資料を作れます。元のスライドや親ディレクトリのファイルは必要ありません。
 
 白い背景、青い上端バーと見出し、灰色のフッタ、右下の丸い分数ページ番号を引き継いでいます。レイアウトは960 × 540px（16:9）で固定し、表示する画面に合わせて全体を拡大・縮小します。著者名・授業名・大学ロゴは固定せず、発表ごとに設定できます。
 
 ## 1. まず動かす
 
-元リポジトリのルートで、まだ存在しないコピー先を指定します。
+発表ごとに、このリポジトリをcloneします。
 
 ```sh
-cp -R template ../my-slides
-cd ../my-slides
+git clone git@github.com:k3komatsu/my_html_slide_style.git my-slides
+cd my-slides
 sh build.sh
 open index.html
 ```
+
+cloneしたディレクトリでブランチを切って編集し、共通の改善を後からテンプレート本体へ還元する運用は「15. Gitでの運用」にまとめています。Gitを使わない場合は、このディレクトリを`my-slides`などに丸ごとコピーしても同じように動きます。
 
 `open`はmacOSのコマンドです。他のOS環境では、ブラウザで直接`index.html`を開いてください。検証用ブラウザにはChromeを推奨します。サンプルスライドは全9枚で構成され、表紙と章扉を除いた7枚にページ番号が表示されます。
 
@@ -345,7 +347,7 @@ PDFは静止画です。動画・CSSアニメーション・タイマー・非�
 
 ## 13. 確認用のコマンド
 
-コピー先のテンプレートのルートで実行します。
+cloneまたはコピーしたテンプレートのルートで実行します。
 
 ```sh
 sh build.sh
@@ -367,3 +369,59 @@ Webで表示するために必要なのは`index.html`と`lib/`・`css/`・`js/`
 `lib/js/tex-svg.js`は元リポジトリに同梱されていたMathJax 3.2.2をそのままコピーしています。[MathJaxの公式ライセンス](https://github.com/mathjax/MathJax/blob/3.2.2/LICENSE)の写しを`lib/MathJax-LICENSE.txt`に同梱しています。ライブラリをコピー・配布する際も一緒に保持してください。
 
 本文・図・CSS・JSと、ビルド後の`index.html`を一緒に管理すると再現しやすくなります。生成PDFや検証画像は本文の元データから分けて保存してください。
+
+## 15. Gitでの運用（発表ごとのcloneとテンプレートへの還元）
+
+発表ごとにこのリポジトリをcloneし、`talk/日付-名前`のようなブランチを切って編集します。発表を通して見つかった共通の改善は、後からテンプレート本体の`main`へ還元します。そのために、還元したい変更と発表固有の変更を最初から分けてコミットしておきます。テンプレートのリポジトリには`main`（テンプレート本体）と`talk/...`（各発表）のブランチが同居し、`main`に入るのは還元済みの変更だけです。
+
+### 発表を始める
+
+```sh
+git clone git@github.com:k3komatsu/my_html_slide_style.git my-talk
+cd my-talk
+git switch -c talk/2026-04-my-talk
+```
+
+### コミットを分ける
+
+還元の対象は共有部分への変更です。`lib/`、`scripts/`、`build.sh`、`tests/`、`README.md`への変更は1機能1コミットにし、`deck:`（操作・描画）、`style:`（見た目）、`fix:`（不具合）などのprefixを付けます。発表固有のファイル（`index.html`、`parts/`、`css/custom.css`、`js/`、`figures/`）は通常のメッセージで構いません。
+
+```sh
+git add lib/js/deck.js
+git commit -m "deck: Oキーで一覧を開けるようにする"
+
+git add parts/01_slides.html css/custom.css
+git commit -m "talk: スライド本体を書く"
+```
+
+区切りごとにブランチをpushしておくと、バックアップと還元の両方に使えます。`main`へはpushしません。
+
+```sh
+git push -u origin talk/2026-04-my-talk
+```
+
+### 還元する
+
+テンプレート本体のcloneで発表のブランチを取り込み、還元するコミットだけをcherry-pickします。prefixを目印に選んでください。発表のブランチをpushしていない場合は、`git remote add my-talk ~/work/my-talk`のようにclone先を直接remoteに指定しても同じです。
+
+```sh
+# テンプレート本体のcloneで
+git fetch origin
+git log --oneline main..origin/talk/2026-04-my-talk
+git cherry-pick <コミット>
+sh build.sh
+node tests/browser-smoke.mjs
+git push origin main
+```
+
+還元後は`git push origin --delete talk/2026-04-my-talk`で発表のブランチを消しても構いません。発表の作成中にテンプレートの更新を取り込む場合は、`git fetch origin`の後に`git merge origin/main`（または`git rebase origin/main`）を使います。発表が終わったら還元するコミットを選ぶ時間を数分取り、改善を次の発表へ引き継いでください。
+
+### 発表を独立したリポジトリとして公開する
+
+発表だけを配布する場合は、空のリポジトリへブランチを`main`としてpushできます。テンプレートの履歴ごと移ります。
+
+```sh
+git push git@github.com:k3komatsu/my-talk.git talk/2026-04-my-talk:main
+```
+
+以後テンプレートの更新を追う場合は、clone時に`origin`を発表用リポジトリ、テンプレートを`upstream`に分けると管理しやすくなります。
