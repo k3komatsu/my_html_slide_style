@@ -414,7 +414,7 @@ node tests/browser-smoke.mjs
 git push origin main
 ```
 
-還元後は`git push origin --delete talk/2026-04-my-talk`で発表のブランチを消しても構いません。発表の作成中にテンプレートの更新を取り込む場合は、`git fetch origin`の後に`git merge origin/main`（または`git rebase origin/main`）を使います。発表が終わったら還元するコミットを選ぶ時間を数分取り、改善を次の発表へ引き継いでください。
+還元後は`git push origin --delete talk/2026-04-my-talk`で発表のブランチを消しても構いません。発表の作成中にテンプレートの更新を取り込む場合は、`git fetch origin`の後に`git merge origin/main`（または`git rebase origin/main`）を使います。還元は発表当日でなくてよく、次の発表を作り始める前に忘れないうちに済ませておくと、改善が引き継がれます。
 
 ### 発表を独立したリポジトリとして公開する
 
