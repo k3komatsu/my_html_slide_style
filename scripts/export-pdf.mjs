@@ -102,6 +102,7 @@ try {
   assert.equal(report.brokenImages.length, 0, 'Missing images');
   assert(report.plots.every(plot => plot.opaque > 0 && plot.colored > 0), 'An animation plot is blank');
   const pdf = await cdp('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, displayHeaderFooter: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 });
+  await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, Buffer.from(pdf.data, 'base64'), { flag: 'wx' });
   await writeFile(path.join(profile, 'validation.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ output, validation: path.join(profile, 'validation.json'), ...report }, null, 2));

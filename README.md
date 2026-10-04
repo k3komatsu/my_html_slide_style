@@ -331,14 +331,16 @@ Canvasやアニメーションを含む発表には、専用のPDF出力スク�
 
 ```sh
 sh build.sh
-node scripts/export-pdf.mjs index.html presentation.pdf
+node scripts/export-pdf.mjs index.html dist/presentation.pdf
 ```
 
 Chromeが標準のmacOSの場所にない場合は、実行ファイルを指定します。
 
 ```sh
-CHROME_PATH='/path/to/chrome' node scripts/export-pdf.mjs index.html presentation.pdf
+CHROME_PATH='/path/to/chrome' node scripts/export-pdf.mjs index.html dist/presentation.pdf
 ```
+
+出力先の`dist/`はGitの管理対象外です。生成PDFは`dist/`にまとめておくと、本文の元データと混ざりません。
 
 このスクリプトは専用のChrome一時プロファイルを作り、数式・フォント・画像を待ちます。全スライドを描画対象にし、`requestAnimationFrame`によるデモを180フレーム（約3秒相当）進め、以後のフレームを止めて印刷します。乱数は固定シードで生成します。元のHTML・CSS・JSや普段のブラウザのプロファイルは変更しません。
 
@@ -379,7 +381,7 @@ sh build.sh --single
 
 `lib/js/tex-svg.js`は元リポジトリに同梱されていたMathJax 3.2.2をそのままコピーしています。[MathJaxの公式ライセンス](https://github.com/mathjax/MathJax/blob/3.2.2/LICENSE)の写しを`lib/MathJax-LICENSE.txt`に同梱しています。ライブラリをコピー・配布する際も一緒に保持してください。
 
-本文・図・CSS・JSと、ビルド後の`index.html`を一緒に管理すると再現しやすくなります。生成PDFや検証画像は本文の元データから分けて保存してください。
+本文・図・CSS・JSと、ビルド後の`index.html`を一緒に管理すると再現しやすくなります。生成PDFは`dist/`に出力され、検証画像もキャッシュディレクトリに保存されるため、本文の元データとは混ざりません。配布用に確定したPDFを残したい場合は、`dist/`の外に置いて管理してください。
 
 ## 15. Gitでの運用（発表ごとのcloneとテンプレートへの還元）
 
