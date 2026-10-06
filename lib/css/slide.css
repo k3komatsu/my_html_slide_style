@@ -114,7 +114,10 @@ math { font-family: var(--font-math); font-size: 1.07em; }
 .callout {                          /* 「目的」など青枠見出し付きボックス */
   position: absolute; border: 3px solid var(--c-accent); border-radius: 12px; overflow: hidden;
 }
-.callout__head { background: var(--c-accent); color: #fff; text-align: center; font-weight: bold; }
+/* Avoid a pale seam where rounded overflow clipping meets the border at fractional zoom. */
+.callout:has(> .callout__head) { overflow: visible; }
+.callout__head { background: var(--c-accent); color: #fff; text-align: center; font-weight: bold;
+  border-radius: 9px 9px 0 0; box-shadow: 0 0 0 1px var(--c-accent); }
 .note-box { position: absolute; border: 2px solid var(--c-alert); border-radius: 12px; }
 
 /* ---------- Print: 1 slide = 1 page ---------- */
@@ -148,7 +151,7 @@ html.overview .slide.is-current { outline: 3px solid var(--c-accent); }
 /* 見出しを左に置く横並び版（例：「理由 1」）。見出し幅は --callout-head-w で変更できる。 */
 .callout--row { display: flex; }
 .callout--row > .callout__head { flex: none; width: var(--callout-head-w, 140px); height: auto; padding-top: 0;
-  display: flex; align-items: center; justify-content: center; font-size: var(--fs-2); }
+  display: flex; align-items: center; justify-content: center; font-size: var(--fs-2); border-radius: 9px 0 0 9px; }
 .callout--row > .callout__body { position: static; flex: 1; min-width: 0; top: auto; padding: 0 16px;
   display: flex; align-items: center; justify-content: center; text-align: center;
   font-size: var(--fs-1); line-height: 1.35; }
