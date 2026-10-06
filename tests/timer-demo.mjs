@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { openBrowser } from '../tools/browser.mjs';
+import { fixture } from './fixture.mjs';
 
+const sample = process.argv[2] ? null : await fixture();
 const browser = await openBrowser({ label: 'timer' });
 const { evaluate, cdp } = browser;
 const tick = () => evaluate('new Promise(resolve => setTimeout(resolve, 300))');
@@ -20,7 +22,7 @@ const changeDuration = (value, selector = '.timer-duration') => evaluate(`(() =>
 try {
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: 'window.timerNow = Date.now(); Date.now = () => window.timerNow;' });
   await cdp('Emulation.setDeviceMetricsOverride', { width: 980, height: 876, deviceScaleFactor: 1, mobile: false });
-  await browser.load(process.argv[2] ?? 'index.html');
+  await browser.load(process.argv[2] ?? path.join(sample.root, 'index.html'));
   await evaluate('SlideDeck.show(0); SlideDeck.show(1); timerNow += 60_000;');
   await tick();
   assert.equal((await ring()).opacity, '0', 'Normal page navigation does not start the timer');
@@ -104,4 +106,7 @@ try {
   assert.deepEqual(browser.failed, []);
   assert.deepEqual(browser.external, []);
   console.log(`PASS timer start, duration, progress, independent red threshold, reset, input, print and offline\n${browser.profile}`);
-} finally { browser.close(); }
+} finally {
+  browser.close();
+  if (sample) await rm(sample.root, { recursive: true, force: true });
+}
