@@ -55,7 +55,7 @@ export async function build(root, { cdn = false } = {}) {
   const runtime = (await Promise.all(runtimeSources.map(p => readFile(path.join(root, 'lib/runtime', p + '.js'), 'utf8')))).join('\n');
   const bundle = `/* Generated from lib/runtime/*.js by tools/slide.mjs build. */\n(() => {\n${runtime}})();\n`;
   new Script(bundle, { filename: 'lib/js/deck.js' });
-  const scripts = ['lib/js/deck.js', ...config.scripts, ...(config.features.popover ? ['lib/js/popover.js'] : []),
+  const scripts = ['lib/js/deck.js', ...(config.features.menu ? ['lib/js/timer.js'] : []), ...config.scripts, ...(config.features.popover ? ['lib/js/popover.js'] : []),
     config.mathjax.mode === 'cdn' ? 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js' : 'lib/js/tex-svg.js'];
   const html = head + body + '</main>\n' + scripts.map(p => `<script src="${escapeHTML(p)}"></script>`).join('\n') + '\n</body>\n</html>\n';
   // Keep the last valid deck if reading sources or config fails.

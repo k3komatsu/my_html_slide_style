@@ -53,7 +53,7 @@ try {
   } else if (command === 'test' && args.length <= 2) {
     if (!format) {
       await build(root);
-      for (const test of ['tests/integration/tooling.mjs', 'tests/integration/check.mjs', 'tests/core/runtime.mjs']) await run(test);
+      for (const test of ['tests/integration/tooling.mjs', 'tests/integration/check.mjs', 'tests/core/runtime.mjs', 'tests/timer-demo.mjs']) await run(test);
     }
     await run('tests/browser-smoke.mjs', format ? [format] : []);
   } else if (command === 'clean' && args.length === 1) await rm(path.join(root, 'dist'), { recursive: true, force: true });
