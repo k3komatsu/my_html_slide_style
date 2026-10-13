@@ -30,6 +30,7 @@ html.without-menu .slide--cover, html.without-menu .slide--section { background-
 .key-bindings kbd { font-family: inherit; color: #fff; }
 .key-bindings[hidden] { display: none; }
 .key-bindings span[hidden] { display: none; }
+@media (hover: none) and (pointer: coarse) { .key-bindings { display: none; } }   /* スマホ・タブレット：キー操作がないので隠し、スライドを広く使う */
 .slide:focus { outline: none; }
 .focus-notice { position: fixed; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
   padding: 2px 6px; border: 1px solid #8884; border-radius: 4px; background: #ffffffcf;
