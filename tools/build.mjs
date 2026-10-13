@@ -4,12 +4,13 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { Script } from 'node:vm';
 import { randomUUID } from 'node:crypto';
+import { identifySlides, loadSettings } from './visibility.mjs';
 
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
 const cssString = value => '"' + [...value].map(c => /["\\<>\n\r\f]/.test(c) ? `\\${c.codePointAt(0).toString(16)} ` : c).join('') + '"';
 export const remote = value => /^(?:https?:)?\/\//.test(value);
-const runtimeSources = ['state', 'pagination', 'focus', 'navigation', 'display', 'overview', 'deck'];
+const runtimeSources = ['state', 'visibility', 'pagination', 'focus', 'navigation', 'display', 'overview', 'deck'];
 async function writeAtomic(file, content) {
   const temporary = `${file}.${randomUUID()}.tmp`;
   try { await writeFile(temporary, content); await rename(temporary, file); }
@@ -37,25 +38,28 @@ export async function loadConfig(root) {
   for (const [key, value] of Object.entries(features)) {
     assert(['overview', 'menu', 'laser', 'popover'].includes(key) && typeof value === 'boolean', `invalid feature: ${key}`);
   }
+  if (config.visibility !== undefined) assert(typeof config.visibility === 'string' && config.visibility
+    && !path.isAbsolute(config.visibility) && !config.visibility.split(/[\\/]/).includes('..'), 'config.visibility must be a relative settings path');
   return { ...config, features };
 }
 
 export async function build(root, { cdn = false } = {}) {
   const config = await loadConfig(root);
+  const visibility = await loadSettings(root, config.visibility, config.visibility === undefined);
   if (cdn) config.mathjax.mode = 'cdn';
   const render = text => text.replace(/\{\{(title|lang|author|affiliation)\}\}/g, (_, key) => escapeHTML(config[key]));
   let head = render(await readFile(path.join(root, 'parts/00_head.html'), 'utf8'));
-  const settings = `<style>:root { --footer-text: ${cssString(config.footer)}; }</style>\n<script>window.SlideConfig = ${json({ features: config.features })};</script>`;
+  const settings = `<style>:root { --footer-text: ${cssString(config.footer)}; }</style>\n<script>window.SlideConfig = ${json({ features: config.features })};</script>\n<script id="slide-visibility-settings" type="application/json">${json(visibility)}</script>`;
   assert(head.includes('<!-- slide:styles -->') && head.includes('<!-- slide:settings -->'), 'head template is missing slide markers');
   head = head.replace('<!-- slide:styles -->', config.styles.map(p => `<link rel="stylesheet" href="${escapeHTML(p)}">`).join('\n'))
     .replace('<!-- slide:settings -->', settings);
   const names = (await readdir(path.join(root, 'parts'))).filter(p => p.endsWith('.html') && p !== '00_head.html').sort();
   assert(names.length, 'No slide source files found');
-  const body = (await Promise.all(names.map(p => readFile(path.join(root, 'parts', p), 'utf8')))).map(render).join('');
+  const body = identifySlides((await Promise.all(names.map(p => readFile(path.join(root, 'parts', p), 'utf8')))).map(render).join(''));
   const runtime = (await Promise.all(runtimeSources.map(p => readFile(path.join(root, 'lib/runtime', p + '.js'), 'utf8')))).join('\n');
   const bundle = `/* Generated from lib/runtime/*.js by tools/slide.mjs build. */\n(() => {\n${runtime}})();\n`;
   new Script(bundle, { filename: 'lib/js/deck.js' });
-  const scripts = ['lib/js/deck.js', ...(config.features.menu ? ['lib/js/timer.js'] : []), ...config.scripts, ...(config.features.popover ? ['lib/js/popover.js'] : []),
+  const scripts = ['lib/js/visibility-model.js', 'lib/js/deck.js', ...(config.features.menu ? ['lib/js/timer.js'] : []), ...config.scripts, ...(config.features.popover ? ['lib/js/popover.js'] : []),
     config.mathjax.mode === 'cdn' ? 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js' : 'lib/js/tex-svg.js'];
   const html = head + body + '</main>\n' + scripts.map(p => `<script src="${escapeHTML(p)}"></script>`).join('\n') + '\n</body>\n</html>\n';
   // Keep the last valid deck if reading sources or config fails.

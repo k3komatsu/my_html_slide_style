@@ -4,8 +4,11 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { exportSelection, selectedHtml, parseSelectionArgs } from '../tools/visibility.mjs';
 
-const [source = 'index.html', output = 'dist/slide.html'] = process.argv.slice(2);
+const { positional, options } = parseSelectionArgs(process.argv.slice(2));
+assert(positional.length <= 2 && !options.allModes && !options.cdn, 'Usage: bundle-single.mjs [source] [output] [--mode MODE] [--settings JSON]');
+const [source = 'index.html', output = 'dist/slide.html'] = positional;
 const MIME = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.woff2': 'font/woff2',
@@ -13,7 +16,7 @@ const MIME = {
 const dataURI = file =>
   `data:${MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'};base64,${readFileSync(file).toString('base64')}`;
 
-let html = readFileSync(source, 'utf8');
+let html = selectedHtml(await exportSelection(source, options), options.mode !== undefined);
 let hasRemote = /<(?:script|link|img)\b[^>]*\b(?:src|href)=["'](?:https?:|\/\/)/.test(html);
 
 // スタイルシート: url(...)をdata URIに置き換えてから<style>にする。CDNの参照はそのまま残す。

@@ -4,10 +4,16 @@ import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { exportSelection, json, parseSelectionArgs } from '../tools/visibility.mjs';
 
-const [source, output] = process.argv.slice(2);
+const { positional, options } = parseSelectionArgs(process.argv.slice(2));
+assert(positional.length === 2 && !options.allModes && !options.cdn, 'Usage: export-pdf.mjs source output [--mode MODE] [--settings JSON]');
+const [source, output] = positional;
 assert(source && output, 'Usage: node scripts/export-pdf.mjs index.html output.pdf');
 await access(source);
+try { await access(output); throw new Error(`PDFは上書きしません: ${output}`); }
+catch (error) { if (error.code !== 'ENOENT') throw error; }
+const selection = await exportSelection(source, options);
 const cache = path.join(homedir(), '.cache', 'html-slide');
 await mkdir(cache, { recursive: true });
 const profile = await mkdtemp(path.join(cache, 'pdf-chrome-'));
@@ -52,6 +58,7 @@ try {
   await cdp('Page.enable');
   await cdp('Runtime.enable');
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.SlideVisibilityOverride = ${json({ settings: selection.settings, mode: selection.selected, exporting: true })};
     window.pdfFrames = new Map(); let frameID = 0;
     window.requestAnimationFrame = fn => { pdfFrames.set(++frameID, fn); return frameID; };
     window.cancelAnimationFrame = id => pdfFrames.delete(id);
@@ -73,7 +80,7 @@ try {
     await MathJax.startup.promise;
     await document.fonts.ready;
     await Promise.all([...document.images].map(img => img.decode()));
-    document.querySelectorAll('.slide').forEach(slide => slide.classList.add('is-current'));
+    document.querySelectorAll('.slide:not(.is-mode-hidden)').forEach(slide => slide.classList.add('is-current'));
     const start = performance.now();
     // ponytail: requestAnimationFrame型デモを約3秒進める。CSSアニメーション・動画を追加したら別途静止状態を指定する。
     for (let i = 1; i <= 180; i++) {
@@ -87,11 +94,11 @@ try {
     return true;
   })()`);
   const report = await evaluate(`({
-    slides: document.querySelectorAll('.slide').length,
+    slides: document.querySelectorAll('.slide:not(.is-mode-hidden)').length,
     math: document.querySelectorAll('mjx-container').length,
     mathErrors: document.querySelectorAll('mjx-merror, [data-mjx-error], [data-mml-node="merror"]').length,
     brokenImages: [...document.images].filter(img => !img.complete || !img.naturalWidth).map(img => img.src),
-    plots: [...document.querySelectorAll('canvas')].map(canvas => {
+    plots: [...document.querySelectorAll('.slide:not(.is-mode-hidden) canvas')].map(canvas => {
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
       let opaque = 0, colored = 0;
       for (let i = 0; i < data.length; i += 4) {

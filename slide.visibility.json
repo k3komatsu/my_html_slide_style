@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "modes": [
+    { "id": "lecture", "name": "授業" },
+    { "id": "handout", "name": "配布" },
+    { "id": "study", "name": "自習" }
+  ],
+  "hidden": {},
+  "defaultMode": ""
+}

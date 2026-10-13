@@ -8,4 +8,5 @@ export default {
   features: { overview: true, menu: true, laser: true, popover: true },
   styles: ['css/custom.css'],
   scripts: ['js/demo.js'],
+  // visibility: 'slide.visibility.json', // 既定ではこの名前の設定ファイルを自動で読み込む
 };

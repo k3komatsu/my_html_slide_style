@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/custom.css">
 <style>:root { --footer-text: "発表者名　　HTMLスライド テンプレート"; }</style>
 <script>window.SlideConfig = {"features":{"overview":true,"menu":true,"laser":true,"popover":true}};</script>
+<script id="slide-visibility-settings" type="application/json">{"version":1,"modes":[{"id":"lecture","name":"授業"},{"id":"handout","name":"配布"},{"id":"study","name":"自習"}],"hidden":{},"defaultMode":""}</script>
 <script>
   window.MathJax = {
     tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
@@ -20,17 +21,17 @@
 <body>
 <main class="slides">
 <!-- 表紙・章扉にはページ番号が付かない。 -->
-<section class="slide slide--cover">
+<section class="slide slide--cover" id="cover" data-slide-id="cover">
   <h1 class="cover-title" style="top:180px">HTMLスライド テンプレート</h1>
   <p class="author-line center" style="top:285px">所属　発表者名</p>
   <p class="box center gray fs-3" style="--y:355px">青い見出し・白い背景・960 × 540 の固定レイアウト</p>
 </section>
 
-<section class="slide slide--section">
+<section class="slide slide--section" id="basics" data-slide-id="basics">
   <h1 class="section-title" style="top:215px">基本の書き方</h1>
 </section>
 
-<section class="slide">
+<section class="slide" id="text" data-slide-id="text">
   <h1 class="slide__title">文字・箇条書き・強調</h1>
   <ul class="box" style="--y:82px; --w:810px">
     <li>本文は <span class="blue">28px</span> を基本に配置
@@ -46,7 +47,7 @@
   </ul>
 </section>
 
-<section class="slide">
+<section class="slide" id="figure" data-slide-id="figure">
   <h1 class="slide__title">文章と図を並べる</h1>
   <ul class="box" style="--x:73px; --y:98px; --w:350px">
     <li>座標はスライドの左上が原点</li>
@@ -60,7 +61,7 @@
   <p class="box gray fs-3" style="--y:450px; --w:810px">表示する画面の大きさに合わせて、スライド全体を拡大・縮小</p>
 </section>
 
-<section class="slide">
+<section class="slide" id="math" data-slide-id="math">
   <h1 class="slide__title">数式はTeXで記述</h1>
   <p class="box" style="--y:88px; --w:814px">文章内の数式：\(E = mc^2\)</p>
   <div class="box" style="--y:170px; --w:814px">
@@ -73,7 +74,7 @@
   </ul>
 </section>
 
-<section class="slide">
+<section class="slide" id="callout" data-slide-id="callout">
   <h1 class="slide__title">枠付き説明とコード</h1>
   <div class="callout" style="left:73px; top:80px; width:814px; height:140px">
     <div class="callout__head">要点</div>
@@ -90,7 +91,7 @@ sh build.sh
 open index.html</code></pre>
 </section>
 
-<section class="slide">
+<section class="slide" id="side-heading" data-slide-id="side-heading">
   <h1 class="slide__title">見出しを左に置く枠</h1>
   <div class="callout callout--row" style="left:73px; top:80px; width:814px; height:110px">
     <div class="callout__head">理由 1</div>
@@ -106,7 +107,7 @@ open index.html</code></pre>
   </div>
 </section>
 
-<section class="slide">
+<section class="slide" id="demo" data-slide-id="demo">
   <h1 class="slide__title">本文の設定値からポップアップを開く</h1>
   <div class="sample-demo interactive">
     <div class="sim-controls">
@@ -127,7 +128,7 @@ open index.html</code></pre>
   </ul>
 </section>
 
-<section class="slide">
+<section class="slide" id="reuse" data-slide-id="reuse">
   <h1 class="slide__title">このディレクトリをコピーして使う</h1>
   <ul class="content stack">
     <li>README.mdに作成手順と部品の使い方を記載</li>
@@ -137,6 +138,7 @@ open index.html</code></pre>
   </ul>
 </section>
 </main>
+<script src="lib/js/visibility-model.js"></script>
 <script src="lib/js/deck.js"></script>
 <script src="lib/js/timer.js"></script>
 <script src="js/demo.js"></script>

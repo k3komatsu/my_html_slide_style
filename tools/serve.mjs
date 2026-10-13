@@ -56,7 +56,7 @@ export async function serve(root, { port = 0, log = console.log } = {}) {
     watcher = watch(root, { recursive: true }, (_, filename) => {
       const file = String(filename ?? '').replaceAll('\\', '/');
       if (file === 'lib/js/deck.js' || file.endsWith('.tmp') || file.endsWith('.DS_Store')) return;
-      if (file !== 'slide.config.mjs' && !/^(parts|slides|css|styles|js|scripts|figures|assets|lib|core)\//.test(file)) return;
+      if (file !== 'slide.config.mjs' && !file.endsWith('.json') && !/^(parts|slides|css|styles|js|scripts|figures|assets|lib|core)\//.test(file)) return;
       clearTimeout(timer); timer = setTimeout(() => {
         if (building) { dirty = true; return; }
         running = rebuild();

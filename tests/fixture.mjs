@@ -1,12 +1,14 @@
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { build } from '../tools/build.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 export async function fixture(name = 'basic', features = {}) {
-  const root = await mkdtemp(path.join(tmpdir(), 'html-slide-test-'));
+  const cache = path.join(homedir(), '.cache/html-slide');
+  await mkdir(cache, { recursive: true });
+  const root = await mkdtemp(path.join(cache, 'test-'));
   await mkdir(path.join(root, 'parts'));
   await cp(path.join(repo, 'lib'), path.join(root, 'lib'), { recursive: true });
   await cp(path.join(repo, 'parts/00_head.html'), path.join(root, 'parts/00_head.html'));

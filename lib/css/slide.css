@@ -208,7 +208,7 @@ html.overview .minimap { display: flex; flex-direction: column; gap: 1px; positi
 .slide.is-menu .menu { transform: translateX(0); }
 .menu__head { display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 16px; border-bottom: 1px solid #ddd; color: var(--c-accent); font-size: 19px; }
 .menu__close { padding: 0 6px; border: 0; background: transparent; color: var(--c-gray); font-size: 24px; line-height: 1; cursor: pointer; }
-.menu__item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 13px 16px;
+.menu__item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 16px;
   border: 0; border-bottom: 1px solid #f0f0f0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .menu__item:hover { background: #eef4fc; color: var(--c-accent); }
 .menu__key { flex: none; padding: 1px 7px; border: 1px solid #ccc; border-radius: 5px; color: var(--c-gray); font-size: 12px; }
@@ -274,3 +274,37 @@ html:not(.overview) body.is-laser .slide, html:not(.overview) body.is-laser .sli
 .menu__timer .menu__item { padding: 8px 0; }
 .menu__timer p { font-size: 12px; }
 @media print { .slide-timer { display: none; } }
+
+/* 表示モードと非表示条件 */
+.slide.is-mode-hidden { display: none !important; }
+.slide-page[hidden], .minimap__tick[hidden] { display: none; }
+.menu { overflow-y: auto; }
+.menu__visibility { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-top: 1px solid #ddd; }
+.menu__visibility label { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; }
+.menu__visibility select { min-width: 0; width: 100%; }
+.menu__visibility button, .menu__visibility select { font: inherit; padding: 4px; }
+.menu__visibility button { flex: none; }
+.visibility-dialog { margin: auto; width: min(1000px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 20px;
+  border: 2px solid var(--c-accent); border-radius: 10px; background: #fff; color: var(--c-text); font: 16px/1.5 var(--font-sans); overflow: auto; }
+.visibility-dialog::backdrop { background: #0009; }
+.visibility-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.visibility-dialog h2 { font-size: 22px; color: var(--c-accent); }
+.visibility-dialog button, .visibility-dialog select, .visibility-dialog input:not([type="checkbox"]) { font: inherit; padding: 5px 8px; max-width: 100%; }
+.visibility-dialog button { cursor: pointer; }
+.visibility-close { border: 0; background: transparent; font-size: 24px !important; }
+.visibility-toolbar, .visibility-add, .visibility-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.visibility-modes > div { display: flex; gap: 4px; }
+.visibility-modes input { width: 150px; }
+.visibility-import input[hidden] { display: none; }
+.visibility-status { margin: 12px 0; color: #555; }
+.visibility-table { overflow: auto; max-height: 55dvh; }
+.visibility-table table { border-collapse: collapse; width: 100%; }
+.visibility-table th, .visibility-table td { border: 1px solid #ccc; padding: 8px; }
+.visibility-table thead th { position: sticky; top: 0; z-index: 1; background: #e8f0fc; white-space: nowrap; }
+.visibility-table tbody th { text-align: left; font-weight: normal; min-width: 220px; }
+.visibility-table td { text-align: center; }
+.visibility-hide { width: 20px; height: 20px; cursor: pointer; }
+@media print {
+  .visibility-dialog { display: none !important; }
+  .slide.is-last-visible { break-after: auto; page-break-after: auto; }
+}
