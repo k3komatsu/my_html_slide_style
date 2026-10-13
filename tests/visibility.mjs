@@ -36,7 +36,7 @@ try {
   await evaluate(`(() => {
     const form = document.querySelector('.visibility-add');
     for (const name of ['授業', '配布', '自習']) { form.elements.mode.value = name; form.requestSubmit(); }
-    const check = [...document.querySelectorAll('.visibility-hide')].find(input => input.dataset.slideId === SlideDeck.slides[1].dataset.slideId);
+    const check = [...document.querySelectorAll('.visibility-dialog .visibility-hide')].find(input => input.dataset.slideId === SlideDeck.slides[1].dataset.slideId);
     check.click();
     const select = document.querySelector('.visibility-dialog .visibility-mode'); select.value = SlideDeck.visibility.settings.modes[0].id; select.dispatchEvent(new Event('change'));
   })()`);
@@ -77,6 +77,24 @@ try {
   await cdp('Emulation.setEmulatedMedia', { media: 'screen' });
   await browser.load(target);
   assert.equal(await evaluate('SlideDeck.visibility.visibleSlides.length'), 2, 'Reload restores the mode and conditions');
+  await evaluate(`(() => {
+    SlideDeck.show(0); SlideDeck.slides[0].focus(); dispatchEvent(new KeyboardEvent('keydown', { key: 'M', bubbles: true }));
+    SlideDeck.slides[0].querySelector('.menu__slide-visibility .visibility-hide').click();
+  })()`);
+  assert.equal(await evaluate('SlideDeck.current'), 2, 'Hiding the current slide in the active mode advances to a visible slide');
+  assert.equal(await evaluate('SlideDeck.visibility.visibleSlides.length'), 1);
+  await evaluate(`(() => {
+    window.alert = message => { window.visibilityAlert = message; };
+    SlideDeck.slides[2].querySelector('.logo-btn').click();
+    SlideDeck.slides[2].querySelector('.menu__slide-visibility .visibility-hide').click();
+  })()`);
+  assert((await evaluate('window.visibilityAlert')).includes('少なくとも1枚'));
+  assert.equal(await evaluate('SlideDeck.slides[2].querySelector(".menu__slide-visibility .visibility-hide").checked'), false, 'The last visible slide cannot be hidden from its menu');
+  await evaluate(`(() => {
+    SlideDeck.visibility.setMode('all'); SlideDeck.show(0); SlideDeck.slides[0].focus();
+    dispatchEvent(new KeyboardEvent('keydown', { key: 'M', bubbles: true }));
+    SlideDeck.slides[0].querySelector('.menu__slide-visibility .visibility-hide').click(); SlideDeck.show(2);
+  })()`);
   await evaluate('SlideDeck.visibility.setMode("all")'); await settle();
   assert.equal(await evaluate('SlideDeck.visibility.visibleSlides.length'), 3);
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.slide-timer')].map(el => el.parentElement.closest('.slide').dataset.slideId)`), rings, 'Renumbering preserves timers');

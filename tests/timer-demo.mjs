@@ -27,6 +27,7 @@ try {
   await tick();
   assert.equal((await ring()).opacity, '0', 'Normal page navigation does not start the timer');
   await evaluate(`document.querySelector('.slide.is-current .logo-btn').click()`);
+  await evaluate(`document.querySelector('.slide.is-current .menu__timer').scrollIntoView({ block: 'nearest' })`);
   await changeDuration('12');
   assert.equal((await ring()).remaining, '12:00');
   assert(await evaluate(`[...document.querySelectorAll('.timer-duration')].every(i => i.value === '12')`));
@@ -93,10 +94,12 @@ try {
   const screenshot = await cdp('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(browser.profile, 'halfway.png'), Buffer.from(screenshot.data, 'base64'));
   await evaluate(`document.querySelector('.slide.is-current .logo-btn').click()`);
+  await evaluate(`(() => { const menu = document.querySelector('.slide.is-current .menu'); menu.scrollTop = menu.scrollHeight; })()`);
   assert(await evaluate(`(() => {
     const menu = document.querySelector('.slide.is-current .menu');
-    return menu.lastElementChild.getBoundingClientRect().bottom <= menu.getBoundingClientRect().bottom;
-  })()`), 'Timer controls fit in the menu');
+    const controls = menu.lastElementChild.getBoundingClientRect(), bounds = menu.getBoundingClientRect();
+    return controls.top >= bounds.top - 1 && controls.bottom <= bounds.bottom + 1;
+  })()`), 'Timer controls can be reached by scrolling the menu');
   await tick();
   const menuShot = await cdp('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(browser.profile, 'menu.png'), Buffer.from(menuShot.data, 'base64'));
