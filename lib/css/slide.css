@@ -138,6 +138,16 @@ html.overview .slide { display: block; position: relative; left: auto; top: auto
   zoom: var(--ovk, .7); margin: 0; outline: 1px solid #888; }
 html.overview .slide.is-current { outline: 3px solid var(--c-accent); }
 
+/* ---------- Scroll view：通常表示は全スライドを縦に連ねる（全画面・一覧・印刷を除く。js/deck.js が html.scroll-view を付ける） ---------- */
+@media screen {
+  html.scroll-view body { overflow: hidden auto; }
+  html.scroll-view .slides { padding: var(--scroll-pad, 18px) 0 calc(var(--scroll-pad, 18px) + var(--deck-bottom, 0px)); }
+  html.scroll-view .slide { display: block; position: relative; left: 50%; top: auto;
+    transform: translateX(-50%) scale(var(--k, 1)); transform-origin: top center;
+    margin-bottom: calc(var(--slide-height) * (var(--k, 1) - 1) + 18px); }   /* 拡大縮小後の高さに合わせて間隔を詰める */
+  html.scroll-view .key-bindings { background: #222; }
+}
+
 /* ---------- Spacing helpers ---------- */
 .gap   { margin-top: 1.4em; }
 .sp    { margin-top: .33em; }       /* 段落間をやや広め */      /* 空行1つぶん */

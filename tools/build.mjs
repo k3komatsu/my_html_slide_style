@@ -34,9 +34,9 @@ export async function loadConfig(root) {
       await access(path.join(root, p));
     }
   }
-  const features = { overview: true, menu: true, laser: true, popover: true, ...config.features };
+  const features = { overview: true, menu: true, laser: true, popover: true, scroll: true, ...config.features };
   for (const [key, value] of Object.entries(features)) {
-    assert(['overview', 'menu', 'laser', 'popover'].includes(key) && typeof value === 'boolean', `invalid feature: ${key}`);
+    assert(['overview', 'menu', 'laser', 'popover', 'scroll'].includes(key) && typeof value === 'boolean', `invalid feature: ${key}`);
   }
   if (config.visibility !== undefined) assert(typeof config.visibility === 'string' && config.visibility
     && !path.isAbsolute(config.visibility) && !config.visibility.split(/[\\/]/).includes('..'), 'config.visibility must be a relative settings path');

@@ -94,13 +94,13 @@ export default {
   affiliation: "所属",
   footer: "発表者名　　発表タイトル",
   mathjax: { mode: "local" },
-  features: { overview: true, menu: true, laser: true, popover: true },
+  features: { overview: true, menu: true, laser: true, popover: true, scroll: true },
   styles: ["css/custom.css"],
   scripts: ["js/demo.js"],
 };
 ```
 
-サンプルデモが不要な場合は、該当スライドを削除し、configの`scripts`から`js/demo.js`を除外してください。ポップアップ機能が不要な場合は`features.popover`を`false`に設定します。`overview`・`menu`・`laser`も個別に無効化可能です。
+サンプルデモが不要な場合は、該当スライドを削除し、configの`scripts`から`js/demo.js`を除外してください。ポップアップ機能が不要な場合は`features.popover`を`false`に設定します。`overview`・`menu`・`laser`も個別に無効化可能です。`scroll`を`false`にすると、通常表示を連続スクロールではなく1枚ずつの表示に戻します。
 
 config内のパスはプロジェクトルートからの相対パスで指定します。ローカルのCSS・JSファイルは事前に存在確認が行われます。`mathjax.mode`の指定値は`local`または`cdn`です。configはJavaScriptとして実行されるため、信頼できる設定ファイルのみを使用してください。`serve`はconfig本体を再読み込みしますが、configがimportした補助モジュールはNode.jsのキャッシュに残ります。補助モジュールを変更したときはサーバーを再起動してください。
 
@@ -319,6 +319,8 @@ CSS内の画像パスは、その記述を書いたCSSファイルからの相�
 | Chromeで最新版を読み込む | ⌘ / Ctrl + Shift + R |
 
 O・F・Mは小文字でも大文字でも動きます。Ctrl・Cmd・Altとの組み合わせは処理しません。Fキーは全画面にする操作です。戻すときはメニューかEscを使います。
+
+通常表示（全画面・一覧以外）では、全スライドを縦に連ねて表示し、スクロールで読み進められます。スライドの大きさは、1枚がウィンドウに収まる大きさです。キー操作とメニュー・`SlideDeck.show`は対象のスライドを表示領域の中央へスクロールし、スクロールすると中央に最も近いスライドが現在のスライド（`SlideDeck.current`・`slidechange`・URLの番号）になります。この表示ではクリックによるページ送りはしません。`.slide.is-current`は画面内にあるすべてのスライドに付くので、デモは画面内のスライドで動きます。現在のスライドは`SlideDeck.current`で調べてください。全画面では従来どおり1枚ずつ表示します。PDF出力は常に1枚ずつの表示で行います。
 
 通常表示ではスライドの下にキー一覧を表示します。全画面、一覧、印刷では隠します。一覧画面では押したスライドを選んで通常の画面に戻ります。右端のミニマップからもスライドを選べます。
 

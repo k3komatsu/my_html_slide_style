@@ -5,7 +5,7 @@ import { fixture } from '../fixture.mjs';
 import { openBrowser } from '../../tools/browser.mjs';
 
 for (const enabled of [true, false]) {
-  const { root } = await fixture('basic', { overview: enabled, menu: enabled, laser: enabled, popover: enabled });
+  const { root } = await fixture('basic', { overview: enabled, menu: enabled, laser: enabled, popover: enabled, scroll: enabled });
   const browser = await openBrowser({ label: 'core' });
   const { cdp, evaluate } = browser;
   try {
@@ -51,17 +51,37 @@ for (const enabled of [true, false]) {
     await evaluate(`SlideDeck.show(0); SlideDeck.slides[0].focus()`);
     await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight' });
     assert.equal(await evaluate('SlideDeck.current'), 1);
+    const frames = n => evaluate(`new Promise(resolve => { let n = ${n}; const tick = () => --n ? requestAnimationFrame(tick) : resolve(); tick(); })`);
+    assert.equal(await evaluate(`document.documentElement.classList.contains('scroll-view')`), enabled);
+    const displayed = await evaluate(`SlideDeck.slides.map(s => getComputedStyle(s).display)`);
+    assert.deepEqual(displayed, enabled ? ['block', 'block', 'block'] : ['none', 'block', 'none']);
+    if (enabled) {   // 連続表示：スライドが縦に並び、show()は中央へ、スクロールは現在のスライドに反映される
+      const area = `(innerHeight - parseFloat(document.documentElement.style.getPropertyValue('--deck-bottom')))`;
+      const centerOffset = index => evaluate(`(() => { const r = SlideDeck.slides[${index}].getBoundingClientRect(); return (r.top + r.bottom) / 2 - ${area} / 2; })()`);
+      assert.equal(await evaluate(`SlideDeck.slides.every((s, i, all) => !i || s.getBoundingClientRect().top > all[i - 1].getBoundingClientRect().top)`), true);
+      await evaluate('window.changes = []; SlideDeck.on("slidechange", e => changes.push(e.index)); SlideDeck.show(2)');
+      assert(Math.abs(await centerOffset(2)) < 1, 'show()が対象を表示領域の中央へ置きません');
+      await evaluate(`scrollTo(0, scrollY + ${await centerOffset(1)})`); await frames(3);
+      assert.equal(await evaluate('SlideDeck.current'), 1); assert.equal(await evaluate('location.hash'), '#2');
+      assert.deepEqual(await evaluate('changes'), [2, 1]);
+      assert.equal(await evaluate(`SlideDeck.slides[1].classList.contains('is-current')`), true);
+      await evaluate('SlideDeck.slides[1].click()');   // クリックではページを送らない
+      assert.equal(await evaluate('SlideDeck.current'), 1);
+    }
     await evaluate(`window.fullscreenChanges=[]; SlideDeck.on('fullscreenchange', e=>fullscreenChanges.push(e.enabled))`);
     const result = await cdp('Runtime.evaluate', { expression: 'document.documentElement.requestFullscreen()', userGesture: true, awaitPromise: true });
     assert(!result.exceptionDetails);
     await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
     assert.equal(await evaluate('fullscreenChanges.at(-1)'), true);
+    assert.equal(await evaluate(`document.documentElement.classList.contains('scroll-view')`), false);   // 全画面は1枚ずつ
+    assert.equal((await evaluate(`SlideDeck.slides.map(s => getComputedStyle(s).display)`)).filter(x => x === 'block').length, 1);
     await evaluate('document.exitFullscreen()');
     await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
     assert.equal(await evaluate('fullscreenChanges.at(-1)'), false);
+    assert.equal(await evaluate(`document.documentElement.classList.contains('scroll-view')`), enabled);
     await evaluate(`window.prints=0; SlideDeck.on('beforeprint',()=>prints++); dispatchEvent(new Event('beforeprint'));`);
     assert.equal(await evaluate('prints'), 1);
     assert.deepEqual(browser.errors, []); assert.deepEqual(browser.failed, []); assert.deepEqual(browser.external, []);
   } finally { browser.close(); await rm(root, { recursive: true, force: true }); }
 }
-console.log('PASS runtime, events, feature flags, laser, fullscreen, file:// offline');
+console.log('PASS runtime, events, feature flags, scroll view, laser, fullscreen, file:// offline');
