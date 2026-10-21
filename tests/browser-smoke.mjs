@@ -23,7 +23,7 @@ try {
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       for (let i = 0; i < SlideDeck.slides.length; i++) {
         SlideDeck.show(i);
-        const slide = document.querySelector('.slide.is-current'), b = slide.getBoundingClientRect();
+        const slide = SlideDeck.slides[SlideDeck.current], b = slide.getBoundingClientRect();
         const keys = document.querySelector('.key-bindings').getBoundingClientRect();
         if (b.left < -1 || b.top < -1 || b.right > innerWidth + 1 || b.bottom > keys.top + 1) throw Error('Slide or keys overflow');
         for (const el of slide.querySelectorAll('h1, .box, .fig, .callout, .note-box, .sample-demo')) {
@@ -33,9 +33,9 @@ try {
       }
       SlideDeck.show(7);
       document.querySelector('.demo-scale-setting').click();
-      const pop = document.querySelector('.sim-pop'), p = pop.getBoundingClientRect(), s = document.querySelector('.slide.is-current').getBoundingClientRect();
+      const pop = document.querySelector('.sim-pop'), p = pop.getBoundingClientRect(), s = SlideDeck.slides[SlideDeck.current].getBoundingClientRect();
       if (!pop || p.left < s.left || p.top < s.top || p.right > s.right || p.bottom > s.bottom) throw Error('Popup overflow');
-      simPopover.close(); document.querySelector('.slide.is-current').focus();
+      simPopover.close(); SlideDeck.slides[SlideDeck.current].focus();
     })()`);
     const screenshot = await cdp('Page.captureScreenshot', { format: 'png' });
     await writeFile(path.join(profile, `screen-${width}x${height}.png`), Buffer.from(screenshot.data, 'base64'));
@@ -71,9 +71,9 @@ try {
     SlideDeck.slides[4].click();
     if (SlideDeck.current !== 4 || document.documentElement.classList.contains('overview')) throw Error('Overview selection failed');
     SlideDeck.slides[4].dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: SlideDeck.slides[4].getBoundingClientRect().left + 1 }));
-    if (SlideDeck.current !== 3) throw Error('Left edge did not go back');
+    if (SlideDeck.current !== 4) throw Error('Click moved the slide in scroll view');   // 連続表示ではクリックでページを送らない
     const link = document.createElement('a'); link.href = '#'; link.textContent = 'link'; link.addEventListener('click', e => e.preventDefault()); SlideDeck.slides[3].append(link); link.click(); link.remove();
-    if (SlideDeck.current !== 3) throw Error('Link advanced slide');
+    if (SlideDeck.current !== 4) throw Error('Link advanced slide');
   })()`);
   const fs = await cdp('Runtime.evaluate', { expression: 'document.documentElement.requestFullscreen()', userGesture: true, awaitPromise: true });
   assert(!fs.exceptionDetails, JSON.stringify(fs.exceptionDetails));
@@ -82,7 +82,7 @@ try {
   await evaluate(`document.exitFullscreen()`);
   await cdp('Emulation.setDeviceMetricsOverride', { width: 1200, height: 800, deviceScaleFactor: 1, mobile: false });
   for (let i = 0; i < 9; i++) {
-    await evaluate(`SlideDeck.show(${i}); document.querySelector('.slide.is-current').focus()`);
+    await evaluate(`SlideDeck.show(${i}); SlideDeck.slides[SlideDeck.current].focus()`);
     const screenshot = await cdp('Page.captureScreenshot', { format: 'png' });
     await writeFile(path.join(profile, `slide-${i + 1}.png`), Buffer.from(screenshot.data, 'base64'));
   }
